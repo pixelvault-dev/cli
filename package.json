@@ -1,5 +1,5 @@
 {
-  "name": "pixelvault",
+  "name": "pixelvault-cli",
   "version": "0.1.0",
   "description": "CLI for PixelVault — agent-first image hosting",
   "type": "module",
