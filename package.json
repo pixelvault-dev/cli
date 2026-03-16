@@ -25,6 +25,10 @@
     "agent",
     "upload"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pixelvault-dev/cli"
+  },
   "author": "PixelVault",
   "license": "MIT",
   "engines": {
