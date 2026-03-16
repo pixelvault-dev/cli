@@ -1,17 +1,20 @@
-# pixelvault
+# pixelvault-cli
+
+[![npm](https://img.shields.io/npm/v/pixelvault-cli)](https://www.npmjs.com/package/pixelvault-cli)
+[![CI](https://github.com/pixelvault-dev/cli/actions/workflows/ci.yml/badge.svg)](https://github.com/pixelvault-dev/cli/actions/workflows/ci.yml)
 
 CLI for [PixelVault](https://pixelvault.dev) — agent-first image hosting for developers and AI coding agents.
 
 ## Install
 
 ```bash
-npm install -g pixelvault
+npm install -g pixelvault-cli
 ```
 
 Or use directly with `npx`:
 
 ```bash
-npx pixelvault upload photo.jpg
+npx pixelvault-cli upload photo.jpg
 ```
 
 ## Quick Start
@@ -46,7 +49,7 @@ The CLI is designed for AI coding agents. Output contract:
 
 ```bash
 # In agent workflows
-URL=$(npx pixelvault upload screenshot.png)
+URL=$(npx pixelvault-cli upload screenshot.png)
 echo "Uploaded to: $URL"
 ```
 
@@ -56,7 +59,7 @@ For CI/CD and headless agent usage:
 
 ```bash
 export PIXELVAULT_API_KEY=pv_live_xxx
-npx pixelvault upload build-output.png
+npx pixelvault-cli upload build-output.png
 ```
 
 ## Commands
