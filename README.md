@@ -1,3 +1,16 @@
+---
+tags:
+  - CLI
+  - image-hosting
+  - agent-integration
+  - npm-package
+  - authentication
+projects:
+  - PixelVault
+tools:
+  - Node.js
+  - npm
+---
 # pixelvault-cli
 
 [![npm](https://img.shields.io/npm/v/pixelvault-cli)](https://www.npmjs.com/package/pixelvault-cli)
@@ -105,6 +118,14 @@ pixelvault config get api_key            # Get a value
 ## Requirements
 
 - Node.js 20+
+
+## Learn more
+
+- [PixelVault](https://pixelvault.dev) — agent-first image hosting
+- [API docs](https://pixelvault.dev/docs) — full REST reference + OpenAPI 3.1
+- [Guide: Image hosting for AI agents](https://pixelvault.dev/blog/image-hosting-for-ai-agents)
+- [Guide: The simplest image hosting API](https://pixelvault.dev/blog/image-hosting-api)
+- [Agent skill](https://github.com/pixelvault-dev/skill) — for Claude Code, Codex, and Cursor
 
 ## License
 
