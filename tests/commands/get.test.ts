@@ -14,28 +14,37 @@ describe("get command", () => {
   });
 
   describe("applyTransform", () => {
+    const U = "https://img.pixelvault.dev/proj/img.png";
+
     it("returns the URL unchanged when no transform is given", () => {
-      const u = "https://img.pixelvault.dev/proj/img.png";
-      expect(applyTransform(u)).toBe(u);
-      expect(applyTransform(u, "")).toBe(u);
+      expect(applyTransform(U)).toBe(U);
+      expect(applyTransform(U, "")).toBe(U);
+      expect(applyTransform(U, "   ")).toBe(U); // whitespace-only → no-op
     });
 
     it("appends params with ? when the URL has no query", () => {
-      expect(
-        applyTransform("https://img.pixelvault.dev/proj/img.png", "w=400&fmt=webp"),
-      ).toBe("https://img.pixelvault.dev/proj/img.png?w=400&fmt=webp");
+      expect(applyTransform(U, "w=400&fmt=webp")).toBe(`${U}?w=400&fmt=webp`);
     });
 
     it("appends with & when the URL already has a query", () => {
-      expect(
-        applyTransform("https://img.pixelvault.dev/proj/img.png?v=2", "segment=foreground"),
-      ).toBe("https://img.pixelvault.dev/proj/img.png?v=2&segment=foreground");
+      expect(applyTransform(`${U}?v=2`, "segment=foreground")).toBe(
+        `${U}?v=2&segment=foreground`,
+      );
     });
 
     it("tolerates a leading ? or & in the transform string", () => {
-      expect(
-        applyTransform("https://img.pixelvault.dev/proj/img.png", "?tile=logo.png"),
-      ).toBe("https://img.pixelvault.dev/proj/img.png?tile=logo.png");
+      expect(applyTransform(U, "?tile=img_logo.png")).toBe(`${U}?tile=img_logo.png`);
+    });
+
+    it("percent-encodes reserved chars so hex colors aren't lost as a fragment", () => {
+      // Without encoding, `#ffaa00` would be parsed as a URL fragment → background lost.
+      expect(applyTransform(U, "segment=foreground&background=#ffaa00")).toBe(
+        `${U}?segment=foreground&background=%23ffaa00`,
+      );
+    });
+
+    it("encodes a folder-prefixed tile path", () => {
+      expect(applyTransform(U, "tile=blog/logo.png")).toBe(`${U}?tile=blog%2Flogo.png`);
     });
   });
 

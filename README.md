@@ -101,7 +101,8 @@ pixelvault get img_xyz -t "w=400&fmt=webp"          # just print the transformed
 Transform params (`-t`/`--transform`) are the same URL params documented at
 <https://pixelvault.dev/docs#transforms> — resize (`w`/`h`/`fit`), format (`fmt`),
 background removal (`segment=foreground`), effects (`blur`/`saturation`/`rotate`/…),
-and watermark (`tile=<image>`).
+and watermark (`tile=img_logo.png` — another of your own images). Reserved
+characters in values are percent-encoded for you (e.g. `background=#ffaa00`).
 
 ### List Options
 
