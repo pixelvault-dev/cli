@@ -33,6 +33,11 @@ pixelvault upload *.png --folder screenshots
 # List your images
 pixelvault list
 
+# Get an image's URL, or download it (optionally transformed)
+pixelvault get img_xyz                                     # prints the CDN URL
+pixelvault get img_xyz -o photo.png                        # download the original
+pixelvault get img_xyz -o thumb.webp -t "w=400&fmt=webp"   # download a transformed variant
+
 # Delete an image
 pixelvault delete img_xyz
 ```
@@ -70,6 +75,7 @@ npx pixelvault-cli upload build-output.png
 | `login` | Log in to existing account |
 | `upload <files...>` | Upload images (prints URLs to stdout) |
 | `list` | List uploaded images |
+| `get <id>` | Get an image's URL/metadata, or download it (optionally transformed) |
 | `delete <id>` | Delete an image |
 | `whoami` | Show current auth state |
 | `config get\|set\|show` | Manage CLI configuration |
@@ -81,6 +87,22 @@ pixelvault upload photo.jpg              # Single file
 pixelvault upload *.png --folder icons   # Bulk with folder
 pixelvault upload shot.png --json        # Full JSON response
 ```
+
+### Get Options
+
+```bash
+pixelvault get img_xyz                              # print the CDN URL to stdout
+pixelvault get img_xyz --json                       # full metadata
+pixelvault get img_xyz -o photo.png                 # download the original to a file
+pixelvault get img_xyz -o cut.png -t "segment=foreground"   # download a transparent cut-out
+pixelvault get img_xyz -t "w=400&fmt=webp"          # just print the transformed URL
+```
+
+Transform params (`-t`/`--transform`) are the same URL params documented at
+<https://pixelvault.dev/docs#transforms> — resize (`w`/`h`/`fit`), format (`fmt`),
+background removal (`segment=foreground`), effects (`blur`/`saturation`/`rotate`/…),
+and watermark (`tile=img_logo.png` — another of your own images). Reserved
+characters in values are percent-encoded for you (e.g. `background=#ffaa00`).
 
 ### List Options
 

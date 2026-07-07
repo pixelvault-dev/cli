@@ -13,6 +13,7 @@ const main = defineCommand({
     login: () => import("./commands/login.js").then((m) => m.default),
     upload: () => import("./commands/upload.js").then((m) => m.default),
     list: () => import("./commands/list.js").then((m) => m.default),
+    get: () => import("./commands/get.js").then((m) => m.default),
     delete: () => import("./commands/delete.js").then((m) => m.default),
     whoami: () => import("./commands/whoami.js").then((m) => m.default),
     config: () => import("./commands/config.js").then((m) => m.default),
