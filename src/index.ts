@@ -5,7 +5,7 @@ import { stderr } from "./lib/output.js";
 const main = defineCommand({
   meta: {
     name: "pixelvault",
-    version: "0.1.0",
+    version: "0.2.0",
     description: "CLI for PixelVault — agent-first image hosting",
   },
   subCommands: {
