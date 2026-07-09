@@ -9,6 +9,8 @@ interface RegisterResponse {
     account_id: string;
     email: string;
     email_verified: boolean;
+    // Optional: older API versions omit it. Absent → treat as "unknown".
+    password_set?: boolean;
     plan: string;
     default_project: {
       id: string;
@@ -30,19 +32,43 @@ export default defineCommand({
     },
     password: {
       type: "string",
-      description: "Password (min 8 characters)",
+      description: "Password (min 8 characters). Omit for a passwordless account.",
+    },
+    passwordless: {
+      type: "boolean",
+      description:
+        "Create the account without a password (for agents/automation). Set a password later via the web 'Forgot password' flow.",
     },
   },
   async run({ args }) {
-    const email = args.email || (await prompt("Email: "));
-    const password = args.password || (await promptPassword("Password: "));
+    const interactive = Boolean(process.stdin.isTTY);
 
-    if (!email || !password) {
-      stderr("Email and password are required.");
+    // Email is always required. Only prompt when we have a TTY — in a headless
+    // (agent) run, missing --email is a hard error rather than a hung prompt.
+    const email = args.email || (interactive ? await prompt("Email: ") : "");
+    if (!email) {
+      stderr("Email is required. Pass --email <email>.");
       process.exit(1);
     }
 
-    if (password.length < 8) {
+    // Resolve the password. Precedence: explicit --password > --passwordless >
+    // interactive prompt (blank = passwordless) > headless default (passwordless,
+    // so a non-TTY run never blocks on a hidden prompt).
+    let password: string | undefined;
+    if (args.password) {
+      password = args.password;
+    } else if (args.passwordless) {
+      password = undefined;
+    } else if (interactive) {
+      const entered = await promptPassword(
+        "Password (leave blank for a passwordless account): "
+      );
+      password = entered || undefined;
+    } else {
+      password = undefined;
+    }
+
+    if (password !== undefined && password.length < 8) {
       stderr("Password must be at least 8 characters.");
       process.exit(1);
     }
@@ -52,7 +78,9 @@ export default defineCommand({
     const res = await apiRequest<RegisterResponse>({
       method: "POST",
       path: "/v1/auth/register",
-      body: { email, password },
+      // Only send the password field when one was chosen — omitting it creates
+      // a passwordless account server-side.
+      body: password ? { email, password } : { email },
     });
 
     updateConfig({
@@ -65,8 +93,18 @@ export default defineCommand({
     stderr(`Email: ${res.data.email}`);
     stderr(`Project: ${res.data.default_project.id}`);
 
+    // password_set === false (or a passwordless request on an older API) means
+    // there's no dashboard login yet — tell the user how to claim one.
+    const passwordless = res.data.password_set === false || !password;
+    if (passwordless) {
+      stderr(
+        "No password set. To enable dashboard login, use 'Forgot password' at " +
+          "https://pixelvault.dev/forgot-password to set one."
+      );
+    }
+
     if (!res.data.email_verified) {
-      stderr("Check your email to verify your account before uploading.");
+      stderr("Verify your email to lift the upload limit for the free tier.");
     }
   },
 });

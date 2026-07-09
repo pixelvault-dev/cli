@@ -20,8 +20,11 @@ npx pixelvault-cli upload photo.jpg
 ## Quick Start
 
 ```bash
-# Create an account
+# Create an account (prompts for email + optional password)
 pixelvault register
+
+# Non-interactive / agent signup — no password, key saved automatically
+pixelvault register --email you@example.com --passwordless
 
 # Upload an image — prints the URL to stdout
 pixelvault upload screenshot.png
