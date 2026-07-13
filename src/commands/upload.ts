@@ -66,6 +66,10 @@ export default defineCommand({
       signExpires = parseExpires(String(args.expires));
     }
 
+    if (args.private && args.folder) {
+      stderr("Note: --folder is ignored for --private uploads.");
+    }
+
     // citty passes positional as a single string; we handle globs via shell expansion
     const files = Array.isArray(args.files) ? args.files : [args.files];
     let hadError = false;
@@ -103,6 +107,14 @@ export default defineCommand({
           auth: apiKey,
           formData,
         });
+
+        // Fail closed: if we asked for private but the server didn't confirm it,
+        // don't hand back a URL the user would wrongly trust as private.
+        if (args.private && res.data.visibility !== "private") {
+          hadError = true;
+          stderr(`Refusing to report ${filePath}: server did not confirm a private upload.`);
+          continue;
+        }
 
         if (args.json) {
           results.push(res.data);
