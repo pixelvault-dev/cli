@@ -43,6 +43,9 @@ pixelvault get img_xyz -o thumb.webp -t "w=400&fmt=webp"   # download a transfor
 
 # Delete an image
 pixelvault delete img_xyz
+
+# Export everything — all your images as a tar archive (no lock-in)
+pixelvault export -o my-images.tar
 ```
 
 ## Agent Integration
@@ -80,6 +83,7 @@ npx pixelvault-cli upload build-output.png
 | `list` | List uploaded images |
 | `get <id>` | Get an image's URL/metadata, or download it (optionally transformed) |
 | `delete <id>` | Delete an image |
+| `export` | Export all project images as a tar archive |
 | `whoami` | Show current auth state |
 | `config get\|set\|show` | Manage CLI configuration |
 
@@ -106,6 +110,22 @@ Transform params (`-t`/`--transform`) are the same URL params documented at
 background removal (`segment=foreground`), effects (`blur`/`saturation`/`rotate`/…),
 and watermark (`tile=img_logo.png` — another of your own images). Reserved
 characters in values are percent-encoded for you (e.g. `background=#ffaa00`).
+
+### Export Options
+
+```bash
+pixelvault export                          # download all your images to pixelvault-export-<job>.tar
+pixelvault export -o backup.tar            # choose the output path
+pixelvault export --extract                # untar into a directory after download (needs `tar`)
+pixelvault export --timeout 900            # wait up to 900s for a large export (default 600)
+pixelvault export --json                   # emit the final job JSON (archive path still to stdout)
+```
+
+`export` downloads **every image in your project** plus a `manifest.json` (ids,
+filenames, storage keys, URLs, metadata) as a single tar archive — the free,
+no-lock-in "take your data anywhere" command. It's async: the CLI starts the job,
+polls until it's ready, then downloads. The archive path goes to **stdout**,
+progress to **stderr**.
 
 ### List Options
 
