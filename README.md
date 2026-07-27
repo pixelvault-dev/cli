@@ -109,9 +109,9 @@ pixelvault config get api_key            # Get a value
 ## Learn more
 
 - [PixelVault](https://pixelvault.dev) — agent-first image hosting
-- [API docs](https://pixelvault.dev/docs) — full REST reference + OpenAPI 3.1
-- [Guide: Image hosting for AI agents](https://pixelvault.dev/blog/image-hosting-for-ai-agents)
-- [Guide: The simplest image hosting API](https://pixelvault.dev/blog/image-hosting-api)
+- [API docs](https://pixelvault.dev/docs/) — full REST reference + OpenAPI 3.1
+- [Guide: Image hosting for AI agents](https://pixelvault.dev/blog/image-hosting-for-ai-agents/)
+- [The simplest image hosting API](https://pixelvault.dev/image-hosting-api/)
 - [Agent skill](https://github.com/pixelvault-dev/skill) — for Claude Code, Codex, and Cursor
 
 ## License
