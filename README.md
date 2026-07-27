@@ -1,16 +1,3 @@
----
-tags:
-  - CLI
-  - image-hosting
-  - agent-integration
-  - npm-package
-  - authentication
-projects:
-  - PixelVault
-tools:
-  - Node.js
-  - npm
----
 # pixelvault-cli
 
 [![npm](https://img.shields.io/npm/v/pixelvault-cli)](https://www.npmjs.com/package/pixelvault-cli)
