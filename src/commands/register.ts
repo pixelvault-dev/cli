@@ -79,8 +79,14 @@ export default defineCommand({
       method: "POST",
       path: "/v1/auth/register",
       // Only send the password field when one was chosen — omitting it creates
-      // a passwordless account server-side.
-      body: password ? { email, password } : { email },
+      // a passwordless account server-side. `attribution.source: "cli"` buckets
+      // the signup to this channel (server treats it as an untrusted hint that
+      // wins over the derived source — see lead-attribution spec).
+      body: {
+        email,
+        ...(password ? { password } : {}),
+        attribution: { source: "cli" },
+      },
     });
 
     updateConfig({

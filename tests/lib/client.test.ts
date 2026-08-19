@@ -60,6 +60,45 @@ describe("client", () => {
     );
   });
 
+  it("sends the X-PixelVault-Client identity header on every request", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: {} }),
+    });
+
+    await apiRequest({ path: "/v1/images" });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://api.test.pixelvault.dev/v1/images",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "X-PixelVault-Client": expect.stringMatching(/^pixelvault-cli\//),
+        }),
+      })
+    );
+  });
+
+  it("lets a caller override the X-PixelVault-Client header", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: {} }),
+    });
+
+    await apiRequest({
+      path: "/v1/images",
+      headers: { "X-PixelVault-Client": "custom/9.9.9" },
+    });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://api.test.pixelvault.dev/v1/images",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "X-PixelVault-Client": "custom/9.9.9",
+        }),
+      })
+    );
+  });
+
   it("throws CliError on HTTP error", async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,

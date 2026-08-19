@@ -13,6 +13,12 @@ interface ApiError {
   error: { code: string; message: string };
 }
 
+// Identifies the CLI to the API so signups made through it can be attributed to
+// this channel (server reads X-PixelVault-Client at register/device-login — see
+// pixelvault docs/specs/lead-attribution.md). Keep the version in sync with
+// package.json on release.
+const CLIENT_ID = "pixelvault-cli/0.5.0";
+
 export async function apiRequest<T>(
   options: RequestOptions & { auth?: string }
 ): Promise<T> {
@@ -20,6 +26,10 @@ export async function apiRequest<T>(
   const url = `${baseUrl}${options.path}`;
 
   const headers: Record<string, string> = { ...options.headers };
+
+  if (!headers["X-PixelVault-Client"]) {
+    headers["X-PixelVault-Client"] = CLIENT_ID;
+  }
 
   if (options.auth) {
     headers["Authorization"] = `Bearer ${options.auth}`;
