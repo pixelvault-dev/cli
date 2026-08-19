@@ -57,18 +57,28 @@ describe("register command — password handling", () => {
 
   it("omits password with --passwordless", async () => {
     await run({ email: "a@b.com", passwordless: true });
-    expect(sentBody()).toEqual({ email: "a@b.com" });
+    expect(sentBody()).toEqual({
+      email: "a@b.com",
+      attribution: { source: "cli" },
+    });
   });
 
   it("includes password when provided", async () => {
     apiRequest.mockResolvedValue(canned({ password_set: true }));
     await run({ email: "a@b.com", password: "longenough1" });
-    expect(sentBody()).toEqual({ email: "a@b.com", password: "longenough1" });
+    expect(sentBody()).toEqual({
+      email: "a@b.com",
+      password: "longenough1",
+      attribution: { source: "cli" },
+    });
   });
 
   it("defaults to passwordless in a non-TTY run with no password flags", async () => {
     await run({ email: "a@b.com" });
-    expect(sentBody()).toEqual({ email: "a@b.com" });
+    expect(sentBody()).toEqual({
+      email: "a@b.com",
+      attribution: { source: "cli" },
+    });
   });
 
   it("saves the returned API key to config", async () => {
