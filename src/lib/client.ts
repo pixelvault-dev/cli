@@ -17,7 +17,7 @@ interface ApiError {
 // this channel (server reads X-PixelVault-Client at register/device-login — see
 // pixelvault docs/specs/lead-attribution.md). Keep the version in sync with
 // package.json on release.
-const CLIENT_ID = "pixelvault-cli/0.5.0";
+const CLIENT_ID = "pixelvault-cli/0.5.1";
 
 export async function apiRequest<T>(
   options: RequestOptions & { auth?: string }
