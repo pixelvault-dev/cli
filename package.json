@@ -4,7 +4,7 @@
   "description": "CLI for PixelVault — agent-first image hosting",
   "type": "module",
   "bin": {
-    "pixelvault": "./bin/pixelvault.mjs"
+    "pixelvault": "bin/pixelvault.mjs"
   },
   "files": [
     "bin",
@@ -27,7 +27,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/pixelvault-dev/cli"
+    "url": "git+https://github.com/pixelvault-dev/cli.git"
   },
   "author": "PixelVault",
   "license": "MIT",
