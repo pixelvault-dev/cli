@@ -70,8 +70,9 @@ export default defineCommand({
       stderr("Note: --folder is ignored for --private uploads.");
     }
 
-    // citty passes positional as a single string; we handle globs via shell expansion
-    const files = Array.isArray(args.files) ? args.files : [args.files];
+    // A citty positional binds only the first value; every positional (including
+    // the first, and anything a shell glob expanded to) lands in `args._`.
+    const files = args._.length ? args._.map(String) : [String(args.files)];
     let hadError = false;
 
     const results: UploadResponse["data"][] = [];
