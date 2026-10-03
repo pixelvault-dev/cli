@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
 import { apiRequest } from "../lib/client.js";
-import { updateConfig, getApiUrl } from "../lib/config.js";
+import { readConfig, updateConfig, getApiUrl } from "../lib/config.js";
 import { prompt, promptPassword } from "../lib/prompt.js";
 import { stderr } from "../lib/output.js";
 
@@ -98,7 +98,12 @@ export default defineCommand({
       stderr(
         `Could not auto-configure API key. Set PIXELVAULT_API_KEY manually.`
       );
-      updateConfig({ email: loginRes.data.email });
+      // Any saved key/project may be from a previous account; drop the project
+      // so whoami doesn't pair it with this email, and flag the key.
+      updateConfig({ email: loginRes.data.email, default_project: undefined });
+      if (readConfig().api_key) {
+        stderr("Warning: the saved api_key may belong to a previous login. Replace it with `pixelvault config set api_key <key>`.");
+      }
     }
   },
 });

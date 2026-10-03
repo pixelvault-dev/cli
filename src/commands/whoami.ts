@@ -30,13 +30,18 @@ export default defineCommand({
         ? `${apiKey.slice(0, 12)}...${apiKey.slice(-4)}`
         : "(not set)",
       source: process.env["PIXELVAULT_API_KEY"] ? "env" : "config",
+      // email/project come from config written at login; nothing checks them
+      // against the current key.
+      identity_source: "cached",
     };
 
     if (args.json) {
       jsonOut(info);
     } else {
-      stdout(`Email:   ${info.email}`);
-      stdout(`Project: ${info.project}`);
+      // email/project are read from config, not looked up for the current key.
+      const tag = (v?: string) => (v ? " (cached, not verified for this key)" : "");
+      stdout(`Email:   ${info.email}${tag(config.email)}`);
+      stdout(`Project: ${info.project}${tag(config.default_project)}`);
       stdout(`API Key: ${info.api_key} (${info.source})`);
     }
   },

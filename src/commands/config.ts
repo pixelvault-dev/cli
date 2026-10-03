@@ -51,7 +51,13 @@ const configSet = defineCommand({
       process.exit(1);
     }
 
-    updateConfig({ [args.key]: args.value });
+    if (args.key === "api_key" && args.value !== readConfig().api_key) {
+      // email and default_project were cached at login for the previous key and
+      // may belong to a different account, so drop them rather than mislead.
+      updateConfig({ api_key: args.value, email: undefined, default_project: undefined });
+    } else {
+      updateConfig({ [args.key]: args.value });
+    }
     stderr(`Set ${args.key} = ${args.key === "api_key" ? "***" : args.value}`);
   },
 });
