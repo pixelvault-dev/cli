@@ -1,11 +1,12 @@
 import { defineCommand, runMain } from "citty";
 import { CliError } from "./lib/errors.js";
+import { VERSION } from "./lib/client.js";
 import { stderr } from "./lib/output.js";
 
 const main = defineCommand({
   meta: {
     name: "pixelvault",
-    version: "0.2.0",
+    version: VERSION,
     description: "CLI for PixelVault — agent-first image hosting",
   },
   subCommands: {
