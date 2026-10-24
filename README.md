@@ -44,6 +44,14 @@ pixelvault get img_xyz -o thumb.webp -t "w=400&fmt=webp"   # download a transfor
 # Delete an image
 pixelvault delete img_xyz
 
+# Check quota before a bulk upload
+pixelvault usage
+
+# Manage API keys (secret key required)
+pixelvault keys list
+KEY=$(pixelvault keys create --label ci)   # raw key on stdout, shown once
+pixelvault keys revoke key_abc123
+
 # Export everything — all your images as a tar archive (no lock-in)
 pixelvault export -o my-images.tar
 ```
@@ -84,6 +92,8 @@ npx pixelvault-cli upload build-output.png
 | `get <id>` | Get an image's URL/metadata, or download it (optionally transformed) |
 | `delete <id>` | Delete an image |
 | `export` | Export all project images as a tar archive |
+| `usage` | Show plan, period, and storage/upload/bandwidth usage and limits |
+| `keys list\|create\|revoke` | List, create, and revoke the project's secret API keys |
 | `whoami` | Show current auth state |
 | `config get\|set\|show` | Manage CLI configuration |
 
@@ -134,6 +144,32 @@ pixelvault list                          # One URL per line
 pixelvault list --json                   # Full JSON with metadata
 pixelvault list --page 2 --per-page 50   # Pagination
 ```
+
+### Usage and Keys
+
+Both need a **secret** key (`pv_live_...`); publishable keys get a 403.
+
+```bash
+pixelvault usage                  # plan, period, used / limit / remaining
+pixelvault usage --json           # the API `data` object
+
+pixelvault keys list              # id, type, env, prefix, label, last used
+pixelvault keys create --label ci --env live
+pixelvault keys revoke key_abc123
+```
+
+- `usage` reports storage and uploads against your limits; bandwidth shows
+  only its monthly limit (usage is not reported).
+- `keys create` prints **only the raw key** to stdout (the "shown once" warning
+  goes to stderr), so `KEY=$(pixelvault keys create)` works. The key is never
+  shown again: store it in a secret manager and never commit it or log it.
+  `--json` prints the whole data object instead.
+- Limits: max 25 keys per project; 20 key changes per hour (429 includes
+  `Retry-After`). Only secret keys can be revoked, and the key making the
+  request cannot revoke itself.
+- **Rotate a key**: `NEW=$(pixelvault keys create --label rotated)`, switch
+  `PIXELVAULT_API_KEY` to `$NEW`, then `pixelvault keys revoke <old-id>` using
+  the new key. If you get locked out, use the dashboard's Regenerate.
 
 ## Configuration
 

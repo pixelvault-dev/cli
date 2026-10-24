@@ -16,6 +16,8 @@ const main = defineCommand({
     get: () => import("./commands/get.js").then((m) => m.default),
     delete: () => import("./commands/delete.js").then((m) => m.default),
     export: () => import("./commands/export.js").then((m) => m.default),
+    usage: () => import("./commands/usage.js").then((m) => m.default),
+    keys: () => import("./commands/keys.js").then((m) => m.default),
     whoami: () => import("./commands/whoami.js").then((m) => m.default),
     config: () => import("./commands/config.js").then((m) => m.default),
   },

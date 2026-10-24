@@ -26,3 +26,18 @@ export function fatal(message: string, exitCode = 1): never {
   stderr(`Error: ${message}`);
   process.exit(exitCode);
 }
+
+/**
+ * Format a byte count for humans (1024-based).
+ */
+export function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let v = n / 1024;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(v >= 100 || Number.isInteger(v) ? 0 : 1)} ${units[i]}`;
+}

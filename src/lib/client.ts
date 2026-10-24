@@ -17,7 +17,27 @@ interface ApiError {
 // this channel (server reads X-PixelVault-Client at register/device-login — see
 // pixelvault docs/specs/lead-attribution.md). Keep the version in sync with
 // package.json on release.
-const CLIENT_ID = "pixelvault-cli/0.5.2";
+const CLIENT_ID = "pixelvault-cli/0.6.0";
+
+/** CliError carrying the API's machine-readable error details. */
+export class ApiRequestError extends CliError {
+  status: number;
+  code?: string;
+  retryAfter?: string;
+
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+    retryAfter?: string
+  ) {
+    super(message, 1);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.retryAfter = retryAfter;
+  }
+}
 
 export async function apiRequest<T>(
   options: RequestOptions & { auth?: string }
@@ -68,7 +88,12 @@ export async function apiRequest<T>(
 
     const message =
       errorBody?.error?.message || `HTTP ${res.status}: ${res.statusText}`;
-    throw new CliError(message, 1);
+    throw new ApiRequestError(
+      message,
+      res.status,
+      errorBody?.error?.code,
+      res.headers?.get?.("Retry-After") ?? undefined
+    );
   }
 
   return (await res.json()) as T;
