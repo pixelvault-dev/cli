@@ -194,6 +194,7 @@ pixelvault config get api_key            # Get a value
 - [Guide: Image hosting for AI agents](https://pixelvault.dev/blog/image-hosting-for-ai-agents/)
 - [The simplest image hosting API](https://pixelvault.dev/image-hosting-api/)
 - [Agent skill](https://github.com/pixelvault-dev/skill) — for Claude Code, Codex, and Cursor
+- SDKs for use from code: [`@pixelvault-dev/sdk`](https://www.npmjs.com/package/@pixelvault-dev/sdk) (JavaScript/TypeScript) and [`pixelvault`](https://pypi.org/project/pixelvault/) (Python)
 
 ## License
 
