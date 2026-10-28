@@ -94,6 +94,8 @@ npx pixelvault-cli upload build-output.png
 | `export` | Export all project images as a tar archive |
 | `usage` | Show plan, period, and storage/upload/bandwidth usage and limits |
 | `keys list\|create\|revoke` | List, create, and revoke the project's secret API keys |
+| `upgrade <starter\|pro>` | Print a Stripe Checkout URL to subscribe (live key; you pay in the browser) |
+| `billing` | Print a Stripe billing-portal URL to change plan, update payment details or cancel (live key) |
 | `whoami` | Show current auth state |
 | `config get\|set\|show` | Manage CLI configuration |
 
@@ -170,6 +172,19 @@ pixelvault keys revoke key_abc123
 - **Rotate a key**: `NEW=$(pixelvault keys create --label rotated)`, switch
   `PIXELVAULT_API_KEY` to `$NEW`, then `pixelvault keys revoke <old-id>` using
   the new key. If you get locked out, use the dashboard's Regenerate.
+
+### Upgrade and billing
+
+Both need a **live** secret key (`pv_live_...`); test and publishable keys get a 403. They print a Stripe URL for **you** to open — nothing is charged by the command, and the plan changes only after Stripe confirms payment.
+
+```bash
+pixelvault upgrade starter        # or: pro → Checkout URL (needs a verified email)
+pixelvault usage                  # after paying: shows the new plan
+pixelvault billing                # portal URL: change plan, payment details, cancel
+pixelvault upgrade pro --json     # { "url": "..." }
+```
+
+Show the URLs only to the account owner: the portal can cancel the subscription. Limited to 10 billing requests per hour per account.
 
 ## Configuration
 
