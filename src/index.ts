@@ -1,7 +1,6 @@
-import { defineCommand, runMain } from "citty";
-import { CliError } from "./lib/errors.js";
+import { defineCommand } from "citty";
+import { runCli } from "./lib/run.js";
 import { VERSION } from "./lib/client.js";
-import { stderr } from "./lib/output.js";
 
 const main = defineCommand({
   meta: {
@@ -24,11 +23,4 @@ const main = defineCommand({
   },
 });
 
-runMain(main).catch((err: unknown) => {
-  if (err instanceof CliError) {
-    stderr(`Error: ${err.message}`);
-    process.exit(err.exitCode);
-  }
-  stderr(`Error: ${err instanceof Error ? err.message : String(err)}`);
-  process.exit(1);
-});
+void runCli(main);
