@@ -128,4 +128,40 @@ describe("upload command", () => {
     expect(printed).toEqual(["https://img.test/a.jpg", "https://img.test/c.jpg"]);
     expect(exitCodes).toEqual([1]);
   });
+
+  it("--optimized prints optimized_url, falling back to url when absent", async () => {
+    const names = ["a.png", "b.svg"];
+    const paths = names.map((name) => {
+      const p = join(testDir, name);
+      writeFileSync(p, Buffer.from(name));
+      return p;
+    });
+    globalThis.fetch = vi.fn().mockImplementation(async (_url, init) => {
+      const file = (init.body as FormData).get("file") as File;
+      const base = `https://img.test/${file.name}`;
+      return {
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: {
+              id: file.name,
+              url: base,
+              ...(file.name.endsWith(".png") ? { optimized_url: `${base}?fmt=auto&q=85` } : {}),
+            },
+          }),
+      };
+    });
+    const out = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    const { runCommand } = await import("citty");
+    const { default: upload } = await import("../../src/commands/upload.js");
+    await runCommand(upload, { rawArgs: [...paths, "--optimized"] });
+    const printed = out.mock.calls.map((c) => String(c[0]).trim());
+    out.mockRestore();
+
+    expect(printed).toEqual([
+      "https://img.test/a.png?fmt=auto&q=85",
+      "https://img.test/b.svg",
+    ]);
+  });
 });

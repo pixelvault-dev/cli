@@ -10,6 +10,7 @@ interface UploadResponse {
   data: {
     id: string;
     url: string;
+    optimized_url?: string;
     visibility?: "public" | "private";
     mime_type: string;
     size: number;
@@ -45,6 +46,12 @@ export default defineCommand({
       type: "string",
       description:
         "Lifetime of a --private signed link: e.g. 30m, 12h, 7d (default 7d; min 60s, max 30d)",
+    },
+    optimized: {
+      type: "boolean",
+      description:
+        "Print the optimized URL (WebP/AVIF, usually much smaller) instead of the original; falls back to the original URL when none is returned (SVG, GIF, private)",
+      default: false,
     },
     json: {
       type: "boolean",
@@ -120,7 +127,7 @@ export default defineCommand({
         if (args.json) {
           results.push(res.data);
         } else {
-          stdout(res.data.url);
+          stdout(args.optimized ? (res.data.optimized_url ?? res.data.url) : res.data.url);
         }
       } catch (err) {
         hadError = true;
