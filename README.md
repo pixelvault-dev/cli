@@ -60,7 +60,7 @@ pixelvault export -o my-images.tar
 
 The CLI is designed for AI coding agents. Output contract:
 
-- `upload` prints **only the URL** to stdout
+- `upload` prints **only the URL** to stdout (add `--optimized` for the smaller WebP/AVIF variant; it falls back to the original URL for SVG, GIF and private uploads)
 - `list` outputs one URL per line
 - `delete` outputs nothing on success
 - All human messages go to **stderr**
