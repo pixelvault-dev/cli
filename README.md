@@ -61,6 +61,7 @@ pixelvault export -o my-images.tar
 The CLI is designed for AI coding agents. Output contract:
 
 - `upload` prints **only the URL** to stdout (add `--optimized` for the smaller WebP/AVIF variant; it falls back to the original URL for SVG, GIF and private uploads)
+- `upload --idempotency-key <key>` makes retries safe: repeating the same key with the same file returns the original image instead of storing a copy (a note goes to stderr; single file only). `upload --dedupe` reuses an identical image already in your project without counting another upload. The two can't be combined
 - `list` outputs one URL per line
 - `delete` outputs nothing on success
 - All human messages go to **stderr**

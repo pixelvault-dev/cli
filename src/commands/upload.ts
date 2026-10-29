@@ -4,6 +4,7 @@ import { basename } from "node:path";
 import { apiRequest } from "../lib/client.js";
 import { requireApiKey } from "../lib/config.js";
 import { parseExpires } from "../lib/duration.js";
+import { validateReuseOptions } from "../lib/upload-options.js";
 import { stdout, stderr, jsonOut } from "../lib/output.js";
 
 interface UploadResponse {
@@ -18,6 +19,10 @@ interface UploadResponse {
     folder: string | null;
     created_at: string;
     signed_expires?: number;
+    /** The API reused an identical existing image (--dedupe). */
+    deduplicated?: boolean;
+    /** The API returned the original of a repeated --idempotency-key. */
+    replayed?: boolean;
   };
 }
 
@@ -53,6 +58,17 @@ export default defineCommand({
         "Print the optimized URL (WebP/AVIF, usually much smaller) instead of the original; falls back to the original URL when none is returned (SVG, GIF, private)",
       default: false,
     },
+    "idempotency-key": {
+      type: "string",
+      description:
+        "Make retries safe: repeating the same key with the same file returns the original image instead of storing a copy (single file only)",
+    },
+    dedupe: {
+      type: "boolean",
+      description:
+        "Reuse an identical image already in your project instead of storing and counting another upload",
+      default: false,
+    },
     json: {
       type: "boolean",
       description: "Output full JSON response",
@@ -82,6 +98,17 @@ export default defineCommand({
     const files = args._.length ? args._.map(String) : [String(args.files)];
     let hadError = false;
 
+    const idempotencyKey = args["idempotency-key"] as string | undefined;
+    const reuseError = validateReuseOptions({
+      idempotencyKey,
+      dedupe: args.dedupe,
+      fileCount: files.length,
+    });
+    if (reuseError) {
+      stderr(reuseError);
+      process.exit(1);
+    }
+
     const results: UploadResponse["data"][] = [];
 
     for (const filePath of files) {
@@ -109,12 +136,24 @@ export default defineCommand({
           }
         }
 
+        if (args.dedupe) {
+          formData.append("dedupe", "true");
+        }
+
         const res = await apiRequest<UploadResponse>({
           method: "POST",
           path: "/v1/images",
           auth: apiKey,
           formData,
+          ...(idempotencyKey ? { headers: { "Idempotency-Key": idempotencyKey } } : {}),
         });
+
+        // stderr only: stdout stays the bare URL so scripts keep working.
+        if (res.data.replayed) {
+          stderr(`Replayed: ${filePath} was already uploaded with this key; returning the original.`);
+        } else if (res.data.deduplicated) {
+          stderr(`Deduplicated: ${filePath} matches an existing image; nothing new was stored.`);
+        }
 
         // Fail closed: if we asked for private but the server didn't confirm it,
         // don't hand back a URL the user would wrongly trust as private.
