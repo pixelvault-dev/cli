@@ -17,7 +17,7 @@ interface ApiError {
 // this channel (server reads X-PixelVault-Client at register/device-login — see
 // pixelvault docs/specs/lead-attribution.md). Keep the version in sync with
 // package.json on release (tests/lib/version.test.ts fails if they drift).
-export const VERSION = "0.7.0";
+export const VERSION = "0.8.0";
 const CLIENT_ID = `pixelvault-cli/${VERSION}`;
 
 /** CliError carrying the API's machine-readable error details. */
