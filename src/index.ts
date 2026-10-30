@@ -12,6 +12,7 @@ const main = defineCommand({
     register: () => import("./commands/register.js").then((m) => m.default),
     login: () => import("./commands/login.js").then((m) => m.default),
     upload: () => import("./commands/upload.js").then((m) => m.default),
+    generate: () => import("./commands/generate.js").then((m) => m.default),
     list: () => import("./commands/list.js").then((m) => m.default),
     get: () => import("./commands/get.js").then((m) => m.default),
     delete: () => import("./commands/delete.js").then((m) => m.default),

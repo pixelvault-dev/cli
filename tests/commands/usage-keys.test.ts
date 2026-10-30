@@ -79,6 +79,23 @@ describe("usage / keys commands", () => {
       expect(err).toBe("");
     });
 
+    it("shows AI generation credits when the API reports them", async () => {
+      mockFetch(200, {
+        data: {
+          ...USAGE,
+          generation: { credits_used: 1, credits_limit: 10, credits_remaining: 9 },
+        },
+      });
+      await usage.run!({ args: { json: false } } as any);
+      expect(out).toContain("AI images: 1 credits used / 10 limit / 9 remaining");
+    });
+
+    it("omits the AI line for an API that doesn't report credits", async () => {
+      mockFetch(200, { data: USAGE });
+      await usage.run!({ args: { json: false } } as any);
+      expect(out).not.toContain("AI images");
+    });
+
     it("--json prints the data object", async () => {
       mockFetch(200, { data: USAGE });
       await usage.run!({ args: { json: true } } as any);
