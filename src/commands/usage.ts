@@ -14,6 +14,12 @@ export interface UsageData {
     bandwidth_bytes_per_month: number | null;
   };
   remaining: { storage_bytes: number | null; uploads: number | null };
+  /** AI image-generation credits (`pixelvault generate`) for the month. */
+  generation?: {
+    credits_used: number;
+    credits_limit: number;
+    credits_remaining: number;
+  };
 }
 
 const bytes = (n: number | null | undefined) =>
@@ -28,6 +34,11 @@ export function renderUsage(d: UsageData): string[] {
     `Storage:   ${formatBytes(d.usage.storage_bytes)} used / ${bytes(d.limits.storage_bytes)} limit / ${bytes(d.remaining.storage_bytes)} remaining`,
     `Uploads:   ${d.usage.uploads} used / ${count(d.limits.uploads_per_month)} limit / ${count(d.remaining.uploads)} remaining`,
     `Bandwidth: ${bytes(d.limits.bandwidth_bytes_per_month)} limit per month (usage not reported)`,
+    ...(d.generation
+      ? [
+          `AI images: ${d.generation.credits_used} credits used / ${d.generation.credits_limit} limit / ${d.generation.credits_remaining} remaining`,
+        ]
+      : []),
   ];
 }
 

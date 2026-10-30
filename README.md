@@ -89,11 +89,12 @@ npx pixelvault-cli upload build-output.png
 | `register` | Create a new account |
 | `login` | Log in to existing account |
 | `upload <files...>` | Upload images (prints URLs to stdout) |
+| `generate <prompt>` | Generate an image from a prompt and host it (prints the URL; spends monthly AI credits) |
 | `list` | List uploaded images |
 | `get <id>` | Get an image's URL/metadata, or download it (optionally transformed) |
 | `delete <id>` | Delete an image |
 | `export` | Export all project images as a tar archive |
-| `usage` | Show plan, period, and storage/upload/bandwidth usage and limits |
+| `usage` | Show plan, period, storage/upload/bandwidth usage and limits, and AI generation credits |
 | `keys list\|create\|revoke` | List, create, and revoke the project's secret API keys |
 | `upgrade <starter\|pro>` | Print a Stripe Checkout URL to subscribe (live key; you pay in the browser) |
 | `billing` | Print a Stripe billing-portal URL to change plan, update payment details or cancel (live key) |
@@ -107,6 +108,21 @@ pixelvault upload photo.jpg              # Single file
 pixelvault upload *.png --folder icons   # Bulk with folder
 pixelvault upload shot.png --json        # Full JSON response
 ```
+
+### Generate Options
+
+```bash
+pixelvault generate "flat vector hero, a robot at a laptop, no text"   # prints the hosted URL
+pixelvault generate a red bicycle --optimized         # unquoted words work; print the WebP/AVIF URL
+pixelvault generate "an og card" --model lucid-origin # Leonardo model (20 credits, paid plans)
+pixelvault generate "a lake" --delete-after 1h        # auto-delete the image
+pixelvault generate "a lake" --private --expires 12h  # signed link
+```
+
+Spends credits from your monthly grant: free 10 (`flux-1-schnell` only), Starter 300, Pro 1,500. `flux-1-schnell`
+and the SDXL models cost 1 credit, the Leonardo models (`lucid-origin`, `phoenix-1.0`) cost 20. A failed
+generation is refunded. stdout is just the URL (or `--json` for the full response); the credits used and left go to
+stderr. Needs a secret key and a verified email. `pixelvault usage` shows your credits.
 
 ### Get Options
 
