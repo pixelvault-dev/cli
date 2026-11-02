@@ -14,6 +14,7 @@ interface ListResponse {
     folder: string | null;
     created_at: string;
     metadata?: Record<string, unknown> | null;
+    description?: { status: string; alt?: string; caption?: string; ocr_text?: string } | null;
   }>;
   meta: {
     total: number;
@@ -37,6 +38,12 @@ export default defineCommand({
       type: "string",
       description: "Items per page (max 100)",
       default: "20",
+    },
+    search: {
+      type: "string",
+      description:
+        'Search the AI descriptions (alt text, caption, OCR text) of images uploaded with --describe, best match first, e.g. --search "invoice 4821" (quotes, -word work)',
+      alias: "q",
     },
     meta: {
       type: "string",
@@ -63,6 +70,8 @@ export default defineCommand({
     });
     const filter = parseMetadataFlags({ meta: args.meta, metadata: args.metadata });
     if (filter) params.set("metadata", JSON.stringify(filter));
+    const search = typeof args.search === "string" ? args.search.trim() : "";
+    if (search) params.set("q", search);
 
     const res = await apiRequest<ListResponse>({
       path: `/v1/images?${params}`,
