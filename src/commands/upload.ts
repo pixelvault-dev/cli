@@ -6,6 +6,7 @@ import { requireApiKey } from "../lib/config.js";
 import { parseExpires } from "../lib/duration.js";
 import { validateReuseOptions } from "../lib/upload-options.js";
 import { parseMetadataFlags } from "../lib/metadata.js";
+import { waitForDescription, describeSummary, type ImageDescription } from "../lib/describe.js";
 import { stdout, stderr, jsonOut } from "../lib/output.js";
 
 interface UploadResponse {
@@ -25,6 +26,10 @@ interface UploadResponse {
     /** The API returned the original of a repeated --idempotency-key. */
     replayed?: boolean;
     metadata?: Record<string, unknown> | null;
+    /** AI description (--describe): pending right after upload, `done` once ready. */
+    description?: ImageDescription | null;
+    /** --describe was requested but could not start (quota, type, busy, ...). */
+    describe_skipped?: string;
   };
 }
 
@@ -80,6 +85,18 @@ export default defineCommand({
       type: "string",
       description: 'Attach custom metadata as a JSON object, e.g. --metadata \'{"env":"prod","n":3}\'',
     },
+    describe: {
+      type: "boolean",
+      description:
+        "Generate an AI description (alt text, caption, OCR) in the background; needs a secret key. Free 20 in total, Starter 1,000/mo, Pro 10,000/mo. Read it with `get <id> --json`, or add --wait",
+      default: false,
+    },
+    wait: {
+      type: "boolean",
+      description:
+        "With --describe: wait up to ~40s for the description and include it in --json output (alt text goes to stderr otherwise)",
+      default: false,
+    },
     json: {
       type: "boolean",
       description: "Output full JSON response",
@@ -122,6 +139,11 @@ export default defineCommand({
 
     const metadata = parseMetadataFlags({ meta: args.meta, metadata: args.metadata });
 
+    if (args.wait && !args.describe) {
+      stderr("--wait only applies together with --describe.");
+      process.exit(1);
+    }
+
     const results: UploadResponse["data"][] = [];
 
     for (const filePath of files) {
@@ -157,6 +179,10 @@ export default defineCommand({
           formData.append("metadata", JSON.stringify(metadata));
         }
 
+        if (args.describe) {
+          formData.append("describe", "true");
+        }
+
         const res = await apiRequest<UploadResponse>({
           method: "POST",
           path: "/v1/images",
@@ -178,6 +204,20 @@ export default defineCommand({
           hadError = true;
           stderr(`Refusing to report ${filePath}: server did not confirm a private upload.`);
           continue;
+        }
+
+        // The upload itself never fails because of --describe; say what happened on stderr.
+        if (args.describe) {
+          if (res.data.describe_skipped) {
+            stderr(`Description skipped for ${filePath}: ${res.data.describe_skipped}.`);
+          } else if (args.wait && res.data.description?.status === "pending") {
+            res.data.description = await waitForDescription(res.data.id, apiKey);
+            if (!args.json) stderr(describeSummary(res.data.description ?? null));
+          } else if (res.data.description?.status === "pending") {
+            stderr(`Describing ${filePath} in the background; read it with: pixelvault get ${res.data.id} --json`);
+          } else if (res.data.description?.status === "done" && !args.json) {
+            stderr(describeSummary(res.data.description)); // reused from an identical image
+          }
         }
 
         if (args.json) {
