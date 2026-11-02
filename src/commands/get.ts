@@ -14,6 +14,7 @@ interface GetResponse {
     filename: string;
     folder: string | null;
     created_at: string;
+    metadata?: Record<string, unknown> | null;
   };
 }
 

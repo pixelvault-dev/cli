@@ -63,6 +63,7 @@ The CLI is designed for AI coding agents. Output contract:
 - `upload` prints **only the URL** to stdout (add `--optimized` for the smaller WebP/AVIF variant; it falls back to the original URL for SVG, GIF and private uploads)
 - `upload --idempotency-key <key>` makes retries safe: repeating the same key with the same file returns the original image instead of storing a copy (a note goes to stderr; single file only). `upload --dedupe` reuses an identical image already in your project without counting another upload. The two can't be combined
 - `list` outputs one URL per line
+- `meta` prints the stored metadata as JSON
 - `delete` outputs nothing on success
 - All human messages go to **stderr**
 - `--json` flag for structured output
@@ -92,6 +93,7 @@ npx pixelvault-cli upload build-output.png
 | `generate <prompt>` | Generate an image from a prompt and host it (prints the URL; spends monthly AI credits) |
 | `list` | List uploaded images |
 | `get <id>` | Get an image's URL/metadata, or download it (optionally transformed) |
+| `meta <id>` | Replace an image's custom metadata (`--meta k=v`, `--metadata '<json>'`, or `--clear`) |
 | `delete <id>` | Delete an image |
 | `export` | Export all project images as a tar archive |
 | `usage` | Show plan, period, storage/upload/bandwidth usage and limits, and AI generation credits |
@@ -107,6 +109,8 @@ npx pixelvault-cli upload build-output.png
 pixelvault upload photo.jpg              # Single file
 pixelvault upload *.png --folder icons   # Bulk with folder
 pixelvault upload shot.png --json        # Full JSON response
+pixelvault upload shot.png --meta env=prod --meta run=42   # Tag with custom metadata (key=value, repeatable)
+pixelvault upload shot.png --metadata '{"n":3}'           # ...or a JSON object (typed values)
 ```
 
 ### Generate Options
@@ -162,7 +166,21 @@ progress to **stderr**.
 pixelvault list                          # One URL per line
 pixelvault list --json                   # Full JSON with metadata
 pixelvault list --page 2 --per-page 50   # Pagination
+pixelvault list --meta env=prod          # Only images tagged env=prod (repeatable; all must match)
+pixelvault list --metadata '{"n":3}'     # Typed match (--meta values are strings)
 ```
+
+### Metadata
+
+Attach custom key/values to images at upload, find them again with `list --meta`, and change them with `meta`:
+
+```bash
+pixelvault meta img_xyz --meta env=staging --meta run=43   # replaces the whole object
+pixelvault meta img_xyz --clear                            # remove it
+```
+
+`meta` **replaces** the stored metadata (it does not merge), so include every key you want to keep. Metadata is ignored when `--dedupe` or `--idempotency-key` returns an existing image; use `meta` to change it. Limits: a JSON object, up to 50 top-level keys and 4 KB; NUL characters aren't allowed. Don't store secrets in it.
+
 
 ### Usage and Keys
 

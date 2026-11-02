@@ -5,6 +5,7 @@ import { apiRequest } from "../lib/client.js";
 import { requireApiKey } from "../lib/config.js";
 import { parseExpires } from "../lib/duration.js";
 import { validateReuseOptions } from "../lib/upload-options.js";
+import { parseMetadataFlags } from "../lib/metadata.js";
 import { stdout, stderr, jsonOut } from "../lib/output.js";
 
 interface UploadResponse {
@@ -23,6 +24,7 @@ interface UploadResponse {
     deduplicated?: boolean;
     /** The API returned the original of a repeated --idempotency-key. */
     replayed?: boolean;
+    metadata?: Record<string, unknown> | null;
   };
 }
 
@@ -69,6 +71,15 @@ export default defineCommand({
         "Reuse an identical image already in your project instead of storing and counting another upload",
       default: false,
     },
+    meta: {
+      type: "string",
+      description:
+        "Attach custom metadata as key=value (repeatable), e.g. --meta env=prod --meta run=42",
+    },
+    metadata: {
+      type: "string",
+      description: 'Attach custom metadata as a JSON object, e.g. --metadata \'{"env":"prod","n":3}\'',
+    },
     json: {
       type: "boolean",
       description: "Output full JSON response",
@@ -109,6 +120,8 @@ export default defineCommand({
       process.exit(1);
     }
 
+    const metadata = parseMetadataFlags({ meta: args.meta, metadata: args.metadata });
+
     const results: UploadResponse["data"][] = [];
 
     for (const filePath of files) {
@@ -138,6 +151,10 @@ export default defineCommand({
 
         if (args.dedupe) {
           formData.append("dedupe", "true");
+        }
+
+        if (metadata) {
+          formData.append("metadata", JSON.stringify(metadata));
         }
 
         const res = await apiRequest<UploadResponse>({

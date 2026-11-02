@@ -15,6 +15,7 @@ const main = defineCommand({
     generate: () => import("./commands/generate.js").then((m) => m.default),
     list: () => import("./commands/list.js").then((m) => m.default),
     get: () => import("./commands/get.js").then((m) => m.default),
+    meta: () => import("./commands/meta.js").then((m) => m.default),
     delete: () => import("./commands/delete.js").then((m) => m.default),
     export: () => import("./commands/export.js").then((m) => m.default),
     usage: () => import("./commands/usage.js").then((m) => m.default),

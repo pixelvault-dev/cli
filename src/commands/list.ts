@@ -2,6 +2,7 @@ import { defineCommand } from "citty";
 import { apiRequest } from "../lib/client.js";
 import { requireApiKey } from "../lib/config.js";
 import { stdout, jsonOut } from "../lib/output.js";
+import { parseMetadataFlags } from "../lib/metadata.js";
 
 interface ListResponse {
   data: Array<{
@@ -12,6 +13,7 @@ interface ListResponse {
     filename: string;
     folder: string | null;
     created_at: string;
+    metadata?: Record<string, unknown> | null;
   }>;
   meta: {
     total: number;
@@ -36,6 +38,16 @@ export default defineCommand({
       description: "Items per page (max 100)",
       default: "20",
     },
+    meta: {
+      type: "string",
+      description:
+        "Only images whose metadata has key=value (repeatable; string match), e.g. --meta env=prod",
+    },
+    metadata: {
+      type: "string",
+      description:
+        'Only images whose metadata contains this JSON object (typed match), e.g. --metadata \'{"n":3}\'',
+    },
     json: {
       type: "boolean",
       description: "Output full JSON response",
@@ -49,6 +61,8 @@ export default defineCommand({
       page: args.page,
       per_page: args["per-page"],
     });
+    const filter = parseMetadataFlags({ meta: args.meta, metadata: args.metadata });
+    if (filter) params.set("metadata", JSON.stringify(filter));
 
     const res = await apiRequest<ListResponse>({
       path: `/v1/images?${params}`,
