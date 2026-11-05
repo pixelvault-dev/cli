@@ -14,7 +14,7 @@ interface ListResponse {
     folder: string | null;
     created_at: string;
     metadata?: Record<string, unknown> | null;
-    description?: { status: string; alt?: string; caption?: string; ocr_text?: string } | null;
+    description?: { status: string; alt?: string; caption?: string; ocr_text?: string; tags?: string[] } | null;
   }>;
   meta: {
     total: number;
@@ -45,6 +45,10 @@ export default defineCommand({
         'Search the AI descriptions (alt text, caption, OCR text) of images uploaded with --describe, best match first, e.g. --search "invoice 4821" (quotes, -word work)',
       alias: "q",
     },
+    tag: {
+      type: "string",
+      description: "Only images carrying this AI tag (one tag, e.g. --tag boat); see `pixelvault tags`",
+    },
     meta: {
       type: "string",
       description:
@@ -72,6 +76,8 @@ export default defineCommand({
     if (filter) params.set("metadata", JSON.stringify(filter));
     const search = typeof args.search === "string" ? args.search.trim() : "";
     if (search) params.set("q", search);
+    const tag = typeof args.tag === "string" ? args.tag.trim() : "";
+    if (tag) params.set("tag", tag);
 
     const res = await apiRequest<ListResponse>({
       path: `/v1/images?${params}`,

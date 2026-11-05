@@ -14,6 +14,8 @@ const main = defineCommand({
     upload: () => import("./commands/upload.js").then((m) => m.default),
     generate: () => import("./commands/generate.js").then((m) => m.default),
     list: () => import("./commands/list.js").then((m) => m.default),
+    tags: () => import("./commands/tags.js").then((m) => m.default),
+    describe: () => import("./commands/describe.js").then((m) => m.default),
     get: () => import("./commands/get.js").then((m) => m.default),
     meta: () => import("./commands/meta.js").then((m) => m.default),
     delete: () => import("./commands/delete.js").then((m) => m.default),
