@@ -5,6 +5,7 @@ export interface ImageDescription {
   alt?: string;
   caption?: string;
   ocr_text?: string;
+  tags?: string[];
   error?: string;
   cached?: boolean;
 }
@@ -43,7 +44,7 @@ export async function waitForDescription(
 /** One human-readable stderr line summarising a finished description. */
 export function describeSummary(d: ImageDescription | null): string {
   if (!d) return "No description was produced.";
-  if (d.status === "done") return `Alt: ${d.alt ?? ""}`;
+  if (d.status === "done") return `Alt: ${d.alt ?? ""}${d.tags?.length ? ` (tags: ${d.tags.join(", ")})` : ""}`;
   if (d.status === "failed") return `Description failed (${d.error ?? "unknown"}).`;
   return "Description is still pending; run `pixelvault get <id> --json` in a few seconds.";
 }

@@ -50,6 +50,7 @@ describe("waitForDescription", () => {
 describe("describeSummary", () => {
   it("summarises each state on one line", () => {
     expect(describeSummary({ status: "done", alt: "A cat" })).toBe("Alt: A cat");
+    expect(describeSummary({ status: "done", alt: "A cat", tags: ["cat", "sofa"] })).toBe("Alt: A cat (tags: cat, sofa)");
     expect(describeSummary({ status: "failed", error: "describe_timeout" })).toMatch(/failed \(describe_timeout\)/);
     expect(describeSummary({ status: "pending" })).toMatch(/still pending/);
     expect(describeSummary(null)).toMatch(/No description/);
