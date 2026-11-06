@@ -73,7 +73,7 @@ describe("optimizeBuffer", () => {
     expect((await optimizeBuffer(factory, gif, "gif", base)).reason).toMatch(/GIF/);
     const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>');
     expect((await optimizeBuffer(factory, svg, "svg", base)).reason).toMatch(/SVG/);
-    expect((await optimizeBuffer(factory, Buffer.from("not an image"), "png", base)).reason).toMatch(/not a readable image/);
+    await expect(optimizeBuffer(factory, Buffer.from("not an image"), "png", base)).rejects.toThrow(/not a readable image/);
   });
 });
 
@@ -84,6 +84,19 @@ describe("idempotence", () => {
     const again = await optimizeBuffer(factory, first.buffer!, "jpg", base);
     expect(again.status).toBe("skipped");
     expect(again.reason).toMatch(/already optimal/);
+  });
+});
+
+describe("idempotence (explicit settings)", () => {
+  it("skips when the same format is requested explicitly and nothing else changes", async () => {
+    const first = await optimizeBuffer(factory, await noisyJpeg(), "jpg", base);
+    const again = await optimizeBuffer(factory, first.buffer!, "jpg", { ...base, format: "jpg" });
+    expect(again.status).toBe("skipped");
+  });
+  it("skips when max-width does not bind", async () => {
+    const first = await optimizeBuffer(factory, await noisyJpeg(), "jpg", base);
+    const again = await optimizeBuffer(factory, first.buffer!, "jpg", { ...base, maxWidth: 4000 });
+    expect(again.status).toBe("skipped");
   });
 });
 

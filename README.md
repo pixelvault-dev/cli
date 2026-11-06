@@ -154,7 +154,12 @@ pixelvault optimize hero.png --host                       # optimize, upload, pr
   (HEIC: <https://pixelvault.dev/tools/heic-to-url/>).
 - Uses [`sharp`](https://sharp.pixelplumbing.com/), an optional dependency. If it can't be installed for your
   platform, `optimize` tells you how to add it; every other command is unaffected.
-- Output: result paths (or hosted URLs with `--host`) on stdout, per-file savings on stderr.
+- Safe by default: refuses to run if two inputs would write to the same output or an output would overwrite an
+  input; writes atomically (temp file + rename); never follows symlinks while walking a directory; with
+  `--out-dir`, files that are already optimal are copied across so the output tree is complete.
+- A corrupt or oversized (>100 MP / >100 MB) image is reported as a failure and the command exits 1.
+- Output: result paths (or hosted URLs with `--host`) on stdout, per-file savings on stderr. `--json` always
+  prints an array. With `--host`, a failed upload is reported without losing the local result.
 
 ### Get Options
 

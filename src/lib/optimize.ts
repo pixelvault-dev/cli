@@ -27,7 +27,12 @@ export interface OptimizeResult {
 
 // Minimal structural type for the bits of sharp we use, so tests can inject a fake
 // and the CLI still builds when the optional dependency isn't installed.
-export type SharpFactory = (input: Buffer) => any;
+export type SharpFactory = (input: Buffer, options?: Record<string, unknown>) => any;
+
+/** Decode limits: refuse decompression bombs instead of allocating gigabytes. */
+export const MAX_INPUT_PIXELS = 100 * 1000 * 1000;
+export const MAX_INPUT_BYTES = 100 * 1024 * 1024;
+const SHARP_INPUT = { limitInputPixels: MAX_INPUT_PIXELS, failOn: "error" } as const;
 
 /** Below this saving, a same-format, same-size re-encode is left alone. */
 export const MIN_SAVING_PERCENT = 5;
@@ -53,10 +58,12 @@ export async function loadSharp(): Promise<SharpFactory> {
   try {
     const mod: any = await import("sharp");
     return (mod.default ?? mod) as SharpFactory;
-  } catch {
+  } catch (err) {
+    const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
     throw new CliError(
-      "optimize needs the optional 'sharp' package, which isn't installed for this platform.\n" +
-        "Install it with: npm install -g sharp   (or reinstall pixelvault-cli without --omit=optional)"
+      "optimize needs the optional 'sharp' package, which couldn't be loaded for this platform.\n" +
+        `  Reason: ${why}\n` +
+        "  Fix: reinstall pixelvault-cli without --omit=optional (npm install -g pixelvault-cli)."
     );
   }
 }
@@ -89,9 +96,11 @@ export async function optimizeBuffer(
 
   let meta: any;
   try {
-    meta = await sharp(input).metadata();
-  } catch {
-    return skip("not a readable image");
+    meta = await sharp(input, SHARP_INPUT).metadata();
+  } catch (err) {
+    // A corrupt or oversized file is a failure the caller must see (CI should not pass on it).
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(/pixel limit/i.test(msg) ? `image is over ${MAX_INPUT_PIXELS / 1e6} megapixels` : "not a readable image");
   }
 
   // Animated images, vector graphics and HEIC are out of scope for v1.
@@ -107,7 +116,7 @@ export async function optimizeBuffer(
   if (!out) return skip(`unsupported format: ${meta.format}`);
 
   // Apply EXIF orientation BEFORE metadata is dropped, otherwise phone photos come out sideways.
-  let pipeline = sharp(input).rotate();
+  let pipeline = sharp(input, SHARP_INPUT).rotate();
 
   if (opts.maxWidth || opts.maxHeight) {
     pipeline = pipeline.resize({
@@ -146,13 +155,16 @@ export async function optimizeBuffer(
   if (data.length >= input.length) {
     return skip("already optimal (result was not smaller)");
   }
-  // Same format, same size: a sliver of saving isn't worth rewriting the file. Keeps
-  // re-runs (pre-commit hooks, CI) idempotent instead of nibbling an image every time.
-  const unchanged = opts.format === "keep" && !opts.maxWidth && !opts.maxHeight;
-  if (unchanged && savedPercent(input.length, data.length) < MIN_SAVING_PERCENT) {
+  // Same format and same pixel size: a sliver of saving isn't worth rewriting the file. Keeps
+  // re-runs (pre-commit hooks, CI) idempotent instead of nibbling an image every time. Compared on
+  // the real detected format and oriented dimensions (not just the flags), with the unrounded ratio.
+  const swap = (meta.orientation ?? 1) >= 5;
+  const inW = swap ? meta.height : meta.width;
+  const inH = swap ? meta.width : meta.height;
+  const unchanged = out.sharpFormat === detected && info.width === inW && info.height === inH;
+  if (unchanged && (input.length - data.length) / input.length < MIN_SAVING_PERCENT / 100) {
     return skip(`already optimal (would save under ${MIN_SAVING_PERCENT}%)`);
   }
-
   return {
     status: "optimized",
     inputBytes: input.length,
