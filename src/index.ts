@@ -16,6 +16,7 @@ const main = defineCommand({
     list: () => import("./commands/list.js").then((m) => m.default),
     tags: () => import("./commands/tags.js").then((m) => m.default),
     describe: () => import("./commands/describe.js").then((m) => m.default),
+    optimize: () => import("./commands/optimize.js").then((m) => m.default),
     get: () => import("./commands/get.js").then((m) => m.default),
     meta: () => import("./commands/meta.js").then((m) => m.default),
     delete: () => import("./commands/delete.js").then((m) => m.default),
