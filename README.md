@@ -94,6 +94,7 @@ npx pixelvault-cli upload build-output.png
 | `list` | List uploaded images (filter by `--tag`, `--search`, `--meta`) |
 | `tags` | List the AI tags on your described images with counts |
 | `describe <id>` | Write an AI description (alt text, caption, OCR, tags) for an image you already uploaded |
+| `optimize <files...>` | Compress images locally — no account needed (resize, convert, strip metadata; never writes a bigger file) |
 | `get <id>` | Get an image's URL/metadata, or download it (optionally transformed) |
 | `meta <id>` | Replace an image's custom metadata (`--meta k=v`, `--metadata '<json>'`, or `--clear`) |
 | `delete <id>` | Delete an image |
@@ -131,6 +132,29 @@ Spends credits from your monthly grant: free 10 (`flux-1-schnell` only), Starter
 and the SDXL models cost 1 credit, the Leonardo models (`lucid-origin`, `phoenix-1.0`) cost 20. A failed
 generation is refunded. stdout is just the URL (or `--json` for the full response); the credits used and left go to
 stderr. Needs a secret key and a verified email. `pixelvault usage` shows your credits.
+
+### Optimize Options
+
+Compress images on your machine. No account, no API key, nothing is uploaded (unless you pass `--host`).
+
+```bash
+pixelvault optimize hero.png                              # writes hero.optimized.png beside it
+pixelvault optimize ./shots -r --format webp --max-width 1600 --out-dir ./optimized
+pixelvault optimize hero.png --in-place                   # overwrite the original (same format only)
+pixelvault optimize ./assets -r --dry-run --json          # report what would be saved
+pixelvault optimize hero.png --host                       # optimize, upload, print the CDN URL
+```
+
+- `--format keep|webp|avif|jpg|png` (default `keep`), `--max-width`/`--max-height` (never upscales),
+  `--quality 1-100` (default 80; JPEG/WebP/AVIF only, PNG output is lossless).
+- EXIF/GPS metadata is **stripped** by default (orientation is applied first); `--keep-metadata` keeps it.
+- Never writes a file that isn't smaller than the original, and leaves an already-optimized file alone
+  (under 5% saving with no resize or format change), so re-running it in a hook is safe.
+- Supports JPG, PNG, WebP and AVIF. GIF, SVG, animated images and HEIC are skipped
+  (HEIC: <https://pixelvault.dev/tools/heic-to-url/>).
+- Uses [`sharp`](https://sharp.pixelplumbing.com/), an optional dependency. If it can't be installed for your
+  platform, `optimize` tells you how to add it; every other command is unaffected.
+- Output: result paths (or hosted URLs with `--host`) on stdout, per-file savings on stderr.
 
 ### Get Options
 
@@ -263,7 +287,7 @@ pixelvault config get api_key            # Get a value
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 20+ (`optimize` needs 20.9+)
 
 ## Learn more
 
