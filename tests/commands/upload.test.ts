@@ -94,6 +94,36 @@ describe("upload command", () => {
     ]);
   });
 
+  it("imports a public MP4 URL through the video endpoint", async () => {
+    const sourceUrl = "https://media.example.com/demo.mp4?token=secret";
+    const fetchMock = vi.fn(async (_url: string | URL, init?: RequestInit) => {
+      expect(init?.headers).toMatchObject({ "Content-Type": "application/json" });
+      expect(JSON.parse(String(init?.body))).toEqual({ url: sourceUrl });
+      return Response.json({
+        data: {
+          id: "vid_test",
+          kind: "video",
+          url: "https://img.test/vid_test.mp4",
+          mime_type: "video/mp4",
+          size: 16,
+          filename: "demo.mp4",
+          created_at: "2026-11-15T00:00:00.000Z",
+        },
+      }, { status: 201 });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+    const out = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    const { runCommand } = await import("citty");
+    const { default: upload } = await import("../../src/commands/upload.js");
+    await runCommand(upload, { rawArgs: [sourceUrl] });
+    const printed = out.mock.calls.map((call) => String(call[0]).trim());
+    out.mockRestore();
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(printed).toEqual(["https://img.test/vid_test.mp4"]);
+  });
+
   it("keeps going past a failed file and exits non-zero", async () => {
     const good = ["a.jpg", "c.jpg"].map((name) => {
       const p = join(testDir, name);

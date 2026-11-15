@@ -8,7 +8,7 @@ import { validateReuseOptions } from "../lib/upload-options.js";
 import { parseMetadataFlags } from "../lib/metadata.js";
 import { waitForDescription, describeSummary, type ImageDescription } from "../lib/describe.js";
 import { stdout, stderr, jsonOut } from "../lib/output.js";
-import { uploadVideoFile } from "../lib/video-upload.js";
+import { isRemoteVideoUrl, uploadVideoFile, uploadVideoUrl } from "../lib/video-upload.js";
 
 interface UploadResponse {
   data: {
@@ -38,12 +38,12 @@ interface UploadResponse {
 export default defineCommand({
   meta: {
     name: "upload",
-    description: "Upload one or more images or MP4 videos",
+    description: "Upload one or more images, MP4 files, or public MP4 URLs",
   },
   args: {
     files: {
       type: "positional",
-      description: "Image or MP4 file path(s) to upload",
+      description: "Image/MP4 file path(s), or public MP4 URL(s), to upload",
       required: true,
     },
     folder: {
@@ -127,7 +127,9 @@ export default defineCommand({
     // the first, and anything a shell glob expanded to) lands in `args._`.
     const files = args._.length ? args._.map(String) : [String(args.files)];
 
-    const hasVideo = files.some((filePath) => extname(filePath).toLowerCase() === ".mp4");
+    const hasVideo = files.some(
+      (source) => isRemoteVideoUrl(source) || extname(source).toLowerCase() === ".mp4"
+    );
     const imageOnlyOption =
       args.folder ||
       args.private ||
@@ -169,8 +171,10 @@ export default defineCommand({
 
     for (const filePath of files) {
       try {
-        if (extname(filePath).toLowerCase() === ".mp4") {
-          const video = await uploadVideoFile(filePath, apiKey);
+        if (isRemoteVideoUrl(filePath) || extname(filePath).toLowerCase() === ".mp4") {
+          const video = isRemoteVideoUrl(filePath)
+            ? await uploadVideoUrl(filePath, apiKey)
+            : await uploadVideoFile(filePath, apiKey);
           if (args.json) {
             results.push(video);
           } else {
