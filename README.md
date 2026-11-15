@@ -72,7 +72,7 @@ pixelvault export -o my-images.tar
 The CLI is designed for AI coding agents. Output contract:
 
 - `upload` prints **only the URL** to stdout for images and MP4 videos (add `--optimized` for the smaller WebP/AVIF image variant; it falls back to the original URL for SVG, GIF and private images)
-- `upload` streams local MP4 files and automatically switches to multipart upload above 100 MB. It also accepts public MP4 URLs and has PixelVault import them directly. `--private [--expires 12h]` returns signed video and poster URLs. Video limits: Free 25 MB, Starter 100 MB, Pro 250 MB
+- `upload` streams local MP4 files and automatically switches to multipart upload above 100 MB. It also accepts public MP4 URLs and has PixelVault import them directly. `--private [--expires 12h]` returns signed video and poster URLs. Every video response includes duration, dimensions, codecs, fast-start status, and social-compatibility warnings; warnings go to stderr while the URL remains clean on stdout. Video limits: Free 25 MB, Starter 100 MB, Pro 250 MB
 - Image uploads support `--idempotency-key` and `--dedupe`; folder, optimization, reuse, metadata, and AI-description options are rejected for MP4 files and URLs
 - `list` outputs one URL per line
 - `meta` prints the stored metadata as JSON
@@ -135,10 +135,12 @@ pixelvault upload shot.png --describe --wait --json        # ...wait (~10s) and 
 MP4 file and URL uploads support `--private`, `--expires`, and `--json`; image-only
 options such as `--folder`, `--optimized`, reuse, metadata, and AI descriptions
 are rejected. PixelVault stores the original video without transcoding and returns
-a generated JPEG `poster_url` when frame extraction succeeds. Remote imports require
-a public HTTP(S) URL whose response includes a valid `Content-Length`; PixelVault
-fetches the video directly. Maximum video size is 25 MB on Free, 100 MB on Starter,
-and 250 MB on Pro.
+a generated JPEG `poster_url` when frame extraction succeeds. The response also
+reports duration, dimensions, codecs, fast-start layout, `social_compatible`, and
+actionable `compatibility_warnings`; questionable MP4s are preserved rather than
+rejected. Remote imports require a public HTTP(S) URL whose response includes a
+valid `Content-Length`; PixelVault fetches the video directly. Maximum video size
+is 25 MB on Free, 100 MB on Starter, and 250 MB on Pro.
 
 ### Generate Options
 

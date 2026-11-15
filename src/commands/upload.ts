@@ -181,6 +181,10 @@ export default defineCommand({
           if (args.private && video.visibility !== "private") {
             throw new Error("The API did not confirm private visibility; refusing to print the URL.");
           }
+          if (video.social_compatible === false) {
+            const detail = video.compatibility_warnings.map(({ message }) => message).join(" ");
+            stderr(`Video compatibility warning: ${detail || "social compatibility could not be verified."}`);
+          }
           if (args.json) {
             results.push(video);
           } else {
