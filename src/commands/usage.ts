@@ -20,6 +20,11 @@ export interface UsageData {
     credits_limit: number;
     credits_remaining: number;
   };
+  video_optimization?: {
+    seconds_used: number;
+    seconds_limit: number;
+    seconds_remaining: number;
+  };
 }
 
 const bytes = (n: number | null | undefined) =>
@@ -37,6 +42,11 @@ export function renderUsage(d: UsageData): string[] {
     ...(d.generation
       ? [
           `AI images: ${d.generation.credits_used} credits used / ${d.generation.credits_limit} limit / ${d.generation.credits_remaining} remaining`,
+        ]
+      : []),
+    ...(d.video_optimization
+      ? [
+          `Social-ready video: ${d.video_optimization.seconds_used}s used / ${d.video_optimization.seconds_limit}s limit / ${d.video_optimization.seconds_remaining}s remaining`,
         ]
       : []),
   ];

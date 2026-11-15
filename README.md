@@ -44,6 +44,9 @@ pixelvault upload "https://media.example.com/demo.mp4"
 # Private video + expiry-matched signed poster URL
 pixelvault upload demo.mp4 --private --expires 12h --json
 
+# Preserve the original and print a social-ready H.264/AAC fast-start URL
+pixelvault optimize-video vid_xyz
+
 # List your images
 pixelvault list
 
@@ -73,6 +76,7 @@ The CLI is designed for AI coding agents. Output contract:
 
 - `upload` prints **only the URL** to stdout for images and MP4 videos (add `--optimized` for the smaller WebP/AVIF image variant; it falls back to the original URL for SVG, GIF and private images)
 - `upload` streams local MP4 files and automatically switches to multipart upload above 100 MB. It also accepts public MP4 URLs and has PixelVault import them directly. `--private [--expires 12h]` returns signed video and poster URLs. Every video response includes duration, dimensions, codecs, fast-start status, and social-compatibility warnings; warnings go to stderr while the URL remains clean on stdout. Video limits: Free 25 MB, Starter 100 MB, Pro 250 MB
+- `optimize-video` waits for the derived social-ready URL and prints only that URL to stdout; `--no-wait` enqueues and returns, while `--json` returns the full state
 - Image uploads support `--idempotency-key` and `--dedupe`; folder, optimization, reuse, metadata, and AI-description options are rejected for MP4 files and URLs
 - `list` outputs one URL per line
 - `meta` prints the stored metadata as JSON
@@ -107,6 +111,7 @@ npx pixelvault-cli upload build-output.png
 | `tags` | List the AI tags on your described images with counts |
 | `describe <id>` | Write an AI description (alt text, caption, OCR, tags) for an image you already uploaded |
 | `optimize <files...>` | Compress images locally — no account needed (resize, convert, strip metadata; never writes a bigger file) |
+| `optimize-video <id>` | Preserve a hosted MP4 and create a social-ready H.264/AAC fast-start copy |
 | `get <id>` | Get an image's URL/metadata, or download it (optionally transformed) |
 | `meta <id>` | Replace an image's custom metadata (`--meta k=v`, `--metadata '<json>'`, or `--clear`) |
 | `delete <id>` | Delete an image |
@@ -141,6 +146,20 @@ actionable `compatibility_warnings`; questionable MP4s are preserved rather than
 rejected. Remote imports require a public HTTP(S) URL whose response includes a
 valid `Content-Length`; PixelVault fetches the video directly. Maximum video size
 is 25 MB on Free, 100 MB on Starter, and 250 MB on Pro.
+
+### Social-ready Video Options
+
+```bash
+pixelvault optimize-video vid_xyz          # waits up to five minutes; prints the social-ready URL
+pixelvault optimize-video vid_xyz --no-wait
+pixelvault optimize-video vid_xyz --json
+```
+
+The source must be at most 100 MB and 60 seconds. Free includes 2 output minutes
+per month, Starter 30 minutes, and Pro 120 minutes. The command is idempotent:
+an already-compatible original is returned unchanged, a running job is reused,
+and a completed derivative is returned without another conversion. Failed jobs
+refund their reserved seconds.
 
 ### Generate Options
 

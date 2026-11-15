@@ -6,6 +6,15 @@ import { CliError } from "./errors.js";
 
 const DIRECT_MAX_BYTES = 100_000_000;
 
+export interface VideoSocialOptimization {
+  preset: "social";
+  status: "not_requested" | "pending" | "processing" | "complete" | "failed" | "not_needed";
+  source?: "original" | "derived";
+  url?: string;
+  size?: number | null;
+  error?: { code: string; message: string };
+}
+
 export interface VideoData {
   id: string;
   kind: "video";
@@ -26,6 +35,7 @@ export interface VideoData {
   fast_start: boolean | null;
   social_compatible: boolean | null;
   compatibility_warnings: { code: string; message: string }[];
+  social_optimization: VideoSocialOptimization;
 }
 
 interface UploadSession {
