@@ -16,6 +16,7 @@ interface UploadResponse {
     kind?: "image" | "video";
     url: string;
     optimized_url?: string;
+    poster_url?: string;
     visibility?: "public" | "private";
     mime_type: string;
     size: number;
@@ -109,14 +110,14 @@ export default defineCommand({
     const apiKey = requireApiKey();
 
     // Resolve the signed-link lifetime up front so a bad value fails before any
-    // upload happens. `--expires` only makes sense for a private (signed) URL.
+    // upload happens. Private image and video links default to seven days.
     let signExpires: number | null = null;
-    if (args.expires !== undefined) {
-      if (!args.private) {
-        stderr("--expires only applies to --private uploads (it sets the signed link's lifetime).");
-        process.exit(1);
-      }
-      signExpires = parseExpires(String(args.expires));
+    if (args.expires !== undefined && !args.private) {
+      stderr("--expires only applies to --private uploads (it sets the signed link's lifetime).");
+      process.exit(1);
+    }
+    if (args.private) {
+      signExpires = parseExpires(String(args.expires ?? "7d"));
     }
 
     if (args.private && args.folder) {
@@ -132,8 +133,6 @@ export default defineCommand({
     );
     const imageOnlyOption =
       args.folder ||
-      args.private ||
-      args.expires ||
       args.optimized ||
       args["idempotency-key"] ||
       args.dedupe ||
@@ -143,7 +142,7 @@ export default defineCommand({
       args.wait;
     if (hasVideo && imageOnlyOption) {
       stderr(
-        "MP4 uploads support only --json. Folder, private-link, optimization, reuse, metadata, and AI-description options are image-only."
+        "MP4 uploads do not support folder, optimization, reuse, metadata, or AI-description options. Use --private and --expires for signed video delivery."
       );
       process.exit(1);
     }
@@ -172,9 +171,16 @@ export default defineCommand({
     for (const filePath of files) {
       try {
         if (isRemoteVideoUrl(filePath) || extname(filePath).toLowerCase() === ".mp4") {
+          const options = {
+            private: Boolean(args.private),
+            signExpiresIn: signExpires,
+          };
           const video = isRemoteVideoUrl(filePath)
-            ? await uploadVideoUrl(filePath, apiKey)
-            : await uploadVideoFile(filePath, apiKey);
+            ? await uploadVideoUrl(filePath, apiKey, options)
+            : await uploadVideoFile(filePath, apiKey, options);
+          if (args.private && video.visibility !== "private") {
+            throw new Error("The API did not confirm private visibility; refusing to print the URL.");
+          }
           if (args.json) {
             results.push(video);
           } else {

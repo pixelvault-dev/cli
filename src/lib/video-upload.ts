@@ -10,15 +10,23 @@ export interface VideoData {
   id: string;
   kind: "video";
   url: string;
+  poster_url?: string;
+  visibility: "public" | "private";
   mime_type: "video/mp4";
   size: number;
   filename: string;
   created_at: string;
+  signed_expires?: number;
 }
 
 interface UploadSession {
   upload_id: string;
   part_size: number;
+}
+
+export interface VideoUploadOptions {
+  private?: boolean;
+  signExpiresIn?: number | null;
 }
 
 function fileBody(filePath: string, start?: number, end?: number): ReadableStream<Uint8Array> {
@@ -39,18 +47,30 @@ export function isRemoteVideoUrl(value: string): boolean {
 }
 
 /** Ask PixelVault to import an MP4 directly from a public URL. */
-export async function uploadVideoUrl(sourceUrl: string, apiKey: string): Promise<VideoData> {
+export async function uploadVideoUrl(
+  sourceUrl: string,
+  apiKey: string,
+  options: VideoUploadOptions = {},
+): Promise<VideoData> {
   const { data } = await apiRequest<{ data: VideoData }>({
     method: "POST",
     path: "/v1/videos",
     auth: apiKey,
-    body: { url: sourceUrl },
+    body: {
+      url: sourceUrl,
+      visibility: options.private ? "private" : "public",
+      ...(options.signExpiresIn ? { sign_expires_in: options.signExpiresIn } : {}),
+    },
   });
   return data;
 }
 
 /** Upload one MP4 without buffering it in the CLI process. */
-export async function uploadVideoFile(filePath: string, apiKey: string): Promise<VideoData> {
+export async function uploadVideoFile(
+  filePath: string,
+  apiKey: string,
+  options: VideoUploadOptions = {},
+): Promise<VideoData> {
   const stat = statSync(filePath);
   if (!stat.isFile() || stat.size <= 0) {
     throw new CliError("Video must be a non-empty file.", 1);
@@ -67,6 +87,10 @@ export async function uploadVideoFile(filePath: string, apiKey: string): Promise
         "Content-Type": "video/mp4",
         "Content-Length": String(stat.size),
         "X-PixelVault-Filename": encodeURIComponent(filename),
+        "X-PixelVault-Visibility": options.private ? "private" : "public",
+        ...(options.signExpiresIn
+          ? { "X-PixelVault-Sign-Expires-In": String(options.signExpiresIn) }
+          : {}),
       },
     });
     return data;
@@ -78,7 +102,11 @@ export async function uploadVideoFile(filePath: string, apiKey: string): Promise
       method: "POST",
       path: "/v1/videos/uploads",
       auth: apiKey,
-      body: { filename, size: stat.size },
+      body: {
+        filename,
+        size: stat.size,
+        visibility: options.private ? "private" : "public",
+      },
     });
     uploadId = session.data.upload_id;
     const partSize = session.data.part_size;
@@ -102,6 +130,9 @@ export async function uploadVideoFile(filePath: string, apiKey: string): Promise
       method: "POST",
       path: `/v1/videos/uploads/${uploadId}/complete`,
       auth: apiKey,
+      ...(options.signExpiresIn
+        ? { headers: { "X-PixelVault-Sign-Expires-In": String(options.signExpiresIn) } }
+        : {}),
     });
     return data;
   } catch (error) {

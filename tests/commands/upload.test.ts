@@ -98,12 +98,13 @@ describe("upload command", () => {
     const sourceUrl = "https://media.example.com/demo.mp4?token=secret";
     const fetchMock = vi.fn(async (_url: string | URL, init?: RequestInit) => {
       expect(init?.headers).toMatchObject({ "Content-Type": "application/json" });
-      expect(JSON.parse(String(init?.body))).toEqual({ url: sourceUrl });
+      expect(JSON.parse(String(init?.body))).toEqual({ url: sourceUrl, visibility: "public" });
       return Response.json({
         data: {
           id: "vid_test",
           kind: "video",
           url: "https://img.test/vid_test.mp4",
+          visibility: "public",
           mime_type: "video/mp4",
           size: 16,
           filename: "demo.mp4",
