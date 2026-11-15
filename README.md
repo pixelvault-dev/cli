@@ -41,6 +41,9 @@ pixelvault upload demo.mp4
 pixelvault upload "https://media.example.com/demo.mp4"
 # https://img.pixelvault.dev/proj_abc/vid_xyz.mp4
 
+# Private video + expiry-matched signed poster URL
+pixelvault upload demo.mp4 --private --expires 12h --json
+
 # List your images
 pixelvault list
 
@@ -69,8 +72,8 @@ pixelvault export -o my-images.tar
 The CLI is designed for AI coding agents. Output contract:
 
 - `upload` prints **only the URL** to stdout for images and MP4 videos (add `--optimized` for the smaller WebP/AVIF image variant; it falls back to the original URL for SVG, GIF and private images)
-- `upload` streams local MP4 files and automatically switches to multipart upload above 100 MB. It also accepts public MP4 URLs and has PixelVault import them directly. Video limits: Free 25 MB, Starter 100 MB, Pro 250 MB
-- Image uploads support `--idempotency-key` and `--dedupe`; those options and the other image-specific flags are rejected for MP4 files and URLs
+- `upload` streams local MP4 files and automatically switches to multipart upload above 100 MB. It also accepts public MP4 URLs and has PixelVault import them directly. `--private [--expires 12h]` returns signed video and poster URLs. Video limits: Free 25 MB, Starter 100 MB, Pro 250 MB
+- Image uploads support `--idempotency-key` and `--dedupe`; folder, optimization, reuse, metadata, and AI-description options are rejected for MP4 files and URLs
 - `list` outputs one URL per line
 - `meta` prints the stored metadata as JSON
 - `delete` outputs nothing on success
@@ -121,19 +124,21 @@ npx pixelvault-cli upload build-output.png
 pixelvault upload photo.jpg              # Single file
 pixelvault upload *.png --folder icons   # Bulk with folder
 pixelvault upload shot.png --json        # Full JSON response
-pixelvault upload demo.mp4 --json                                  # Stream a local MP4; multipart above 100 MB
-pixelvault upload "https://media.example.com/demo.mp4" --json      # Import a public MP4 directly
+pixelvault upload demo.mp4 --json                                  # Stream a local MP4; response includes poster_url
+pixelvault upload "https://media.example.com/demo.mp4" --private --expires 12h --json
 pixelvault upload shot.png --meta env=prod --meta run=42   # Tag with custom metadata (key=value, repeatable)
 pixelvault upload shot.png --metadata '{"n":3}'           # ...or a JSON object (typed values)
 pixelvault upload shot.png --describe                      # AI alt text + caption + OCR in the background
 pixelvault upload shot.png --describe --wait --json        # ...wait (~10s) and include it in the JSON
 ```
 
-MP4 file and URL uploads support `--json`; image-only options such as `--folder`,
-`--private`, `--optimized`, reuse, metadata, and AI descriptions are rejected.
-Remote imports require a public HTTP(S) URL whose response includes a valid
-`Content-Length`; PixelVault fetches the video directly. Maximum video size is
-25 MB on Free, 100 MB on Starter, and 250 MB on Pro.
+MP4 file and URL uploads support `--private`, `--expires`, and `--json`; image-only
+options such as `--folder`, `--optimized`, reuse, metadata, and AI descriptions
+are rejected. PixelVault stores the original video without transcoding and returns
+a generated JPEG `poster_url` when frame extraction succeeds. Remote imports require
+a public HTTP(S) URL whose response includes a valid `Content-Length`; PixelVault
+fetches the video directly. Maximum video size is 25 MB on Free, 100 MB on Starter,
+and 250 MB on Pro.
 
 ### Generate Options
 

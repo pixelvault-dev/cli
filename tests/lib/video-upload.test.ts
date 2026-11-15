@@ -13,6 +13,7 @@ const video = {
   id: "vid_test",
   kind: "video" as const,
   url: "https://img.pixelvault.dev/proj_test/vid_test.mp4",
+  visibility: "public" as const,
   mime_type: "video/mp4" as const,
   size: 16,
   filename: "clip.mp4",
@@ -37,7 +38,7 @@ describe("video upload client", () => {
     const fetchMock = vi.fn(async (url: string | URL, init?: RequestInit) => {
       expect(String(url)).toBe("https://api.test.pixelvault.dev/v1/videos");
       expect(init?.headers).toMatchObject({ "Content-Type": "application/json" });
-      expect(JSON.parse(String(init?.body))).toEqual({ url: sourceUrl });
+      expect(JSON.parse(String(init?.body))).toEqual({ url: sourceUrl, visibility: "public" });
       return Response.json({ data: video }, { status: 201 });
     });
     globalThis.fetch = fetchMock as typeof fetch;
@@ -48,9 +49,14 @@ describe("video upload client", () => {
     expect(isRemoteVideoUrl("/tmp/demo.mp4")).toBe(false);
   });
 
-  it("streams MP4 files up to 100 MB through the direct endpoint", async () => {
+  it("sends private visibility and signed-link expiry for a direct MP4", async () => {
     const path = join(testDir, "clip.mp4");
     writeFileSync(path, Buffer.from("\0\0\0\x10ftypisom\0\0\0\0", "binary"));
+    const privateVideo = {
+      ...video,
+      visibility: "private" as const,
+      signed_expires: 1_800_000_000,
+    };
     const fetchMock = vi.fn(async (url: string | URL, init?: RequestInit) => {
       await cancelBody(init);
       expect(String(url)).toBe("https://api.test.pixelvault.dev/v1/videos");
@@ -58,12 +64,17 @@ describe("video upload client", () => {
         "Content-Type": "video/mp4",
         "Content-Length": "16",
         "X-PixelVault-Filename": "clip.mp4",
+        "X-PixelVault-Visibility": "private",
+        "X-PixelVault-Sign-Expires-In": "43200",
       });
-      return Response.json({ data: video }, { status: 201 });
+      return Response.json({ data: privateVideo }, { status: 201 });
     });
     globalThis.fetch = fetchMock as typeof fetch;
 
-    await expect(uploadVideoFile(path, "pv_live_test")).resolves.toEqual(video);
+    await expect(uploadVideoFile(path, "pv_live_test", {
+      private: true,
+      signExpiresIn: 43_200,
+    })).resolves.toEqual(privateVideo);
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
