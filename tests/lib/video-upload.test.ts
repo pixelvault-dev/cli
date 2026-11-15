@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdirSync, rmSync, truncateSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { uploadVideoFile } from "../../src/lib/video-upload.js";
+import { isRemoteVideoUrl, uploadVideoFile, uploadVideoUrl } from "../../src/lib/video-upload.js";
 
 vi.mock("../../src/lib/config.js", () => ({
   getApiUrl: () => "https://api.test.pixelvault.dev",
@@ -30,6 +30,22 @@ describe("video upload client", () => {
   afterEach(() => {
     globalThis.fetch = originalFetch;
     rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it("asks the API to import a public MP4 URL without downloading it locally", async () => {
+    const sourceUrl = "https://media.example.com/demo.mp4?token=secret";
+    const fetchMock = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      expect(String(url)).toBe("https://api.test.pixelvault.dev/v1/videos");
+      expect(init?.headers).toMatchObject({ "Content-Type": "application/json" });
+      expect(JSON.parse(String(init?.body))).toEqual({ url: sourceUrl });
+      return Response.json({ data: video }, { status: 201 });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(uploadVideoUrl(sourceUrl, "pv_live_test")).resolves.toEqual(video);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(isRemoteVideoUrl(sourceUrl)).toBe(true);
+    expect(isRemoteVideoUrl("/tmp/demo.mp4")).toBe(false);
   });
 
   it("streams MP4 files up to 100 MB through the direct endpoint", async () => {

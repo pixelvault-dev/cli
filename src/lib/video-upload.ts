@@ -29,6 +29,26 @@ function fileBody(filePath: string, start?: number, end?: number): ReadableStrea
   return Readable.toWeb(stream) as ReadableStream<Uint8Array>;
 }
 
+export function isRemoteVideoUrl(value: string): boolean {
+  try {
+    const protocol = new URL(value).protocol;
+    return protocol === "https:" || protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+/** Ask PixelVault to import an MP4 directly from a public URL. */
+export async function uploadVideoUrl(sourceUrl: string, apiKey: string): Promise<VideoData> {
+  const { data } = await apiRequest<{ data: VideoData }>({
+    method: "POST",
+    path: "/v1/videos",
+    auth: apiKey,
+    body: { url: sourceUrl },
+  });
+  return data;
+}
+
 /** Upload one MP4 without buffering it in the CLI process. */
 export async function uploadVideoFile(filePath: string, apiKey: string): Promise<VideoData> {
   const stat = statSync(filePath);
