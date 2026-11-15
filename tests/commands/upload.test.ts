@@ -109,20 +109,30 @@ describe("upload command", () => {
           size: 16,
           filename: "demo.mp4",
           created_at: "2026-11-15T00:00:00.000Z",
+          social_compatible: false,
+          compatibility_warnings: [
+            { code: "not_fast_start", message: "Move the moov atom before media data." },
+          ],
         },
       }, { status: 201 });
     });
     globalThis.fetch = fetchMock as typeof fetch;
     const out = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const err = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 
     const { runCommand } = await import("citty");
     const { default: upload } = await import("../../src/commands/upload.js");
     await runCommand(upload, { rawArgs: [sourceUrl] });
     const printed = out.mock.calls.map((call) => String(call[0]).trim());
     out.mockRestore();
+    const errors = err.mock.calls.map((call) => String(call[0]).trim());
+    err.mockRestore();
 
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(printed).toEqual(["https://img.test/vid_test.mp4"]);
+    expect(errors).toEqual([
+      "Video compatibility warning: Move the moov atom before media data.",
+    ]);
   });
 
   it("keeps going past a failed file and exits non-zero", async () => {

@@ -17,6 +17,15 @@ export interface VideoData {
   filename: string;
   created_at: string;
   signed_expires?: number;
+  width: number | null;
+  height: number | null;
+  duration_seconds: number | null;
+  video_codec: string | null;
+  audio_codec: string | null;
+  has_audio: boolean | null;
+  fast_start: boolean | null;
+  social_compatible: boolean | null;
+  compatibility_warnings: { code: string; message: string }[];
 }
 
 interface UploadSession {
