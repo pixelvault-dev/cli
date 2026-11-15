@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
 import { readFileSync } from "node:fs";
-import { basename } from "node:path";
+import { basename, extname } from "node:path";
 import { apiRequest } from "../lib/client.js";
 import { requireApiKey } from "../lib/config.js";
 import { parseExpires } from "../lib/duration.js";
@@ -8,17 +8,19 @@ import { validateReuseOptions } from "../lib/upload-options.js";
 import { parseMetadataFlags } from "../lib/metadata.js";
 import { waitForDescription, describeSummary, type ImageDescription } from "../lib/describe.js";
 import { stdout, stderr, jsonOut } from "../lib/output.js";
+import { uploadVideoFile } from "../lib/video-upload.js";
 
 interface UploadResponse {
   data: {
     id: string;
+    kind?: "image" | "video";
     url: string;
     optimized_url?: string;
     visibility?: "public" | "private";
     mime_type: string;
     size: number;
     filename: string;
-    folder: string | null;
+    folder?: string | null;
     created_at: string;
     signed_expires?: number;
     /** The API reused an identical existing image (--dedupe). */
@@ -36,12 +38,12 @@ interface UploadResponse {
 export default defineCommand({
   meta: {
     name: "upload",
-    description: "Upload one or more images",
+    description: "Upload one or more images or MP4 videos",
   },
   args: {
     files: {
       type: "positional",
-      description: "File path(s) to upload",
+      description: "Image or MP4 file path(s) to upload",
       required: true,
     },
     folder: {
@@ -124,6 +126,25 @@ export default defineCommand({
     // A citty positional binds only the first value; every positional (including
     // the first, and anything a shell glob expanded to) lands in `args._`.
     const files = args._.length ? args._.map(String) : [String(args.files)];
+
+    const hasVideo = files.some((filePath) => extname(filePath).toLowerCase() === ".mp4");
+    const imageOnlyOption =
+      args.folder ||
+      args.private ||
+      args.expires ||
+      args.optimized ||
+      args["idempotency-key"] ||
+      args.dedupe ||
+      args.meta ||
+      args.metadata ||
+      args.describe ||
+      args.wait;
+    if (hasVideo && imageOnlyOption) {
+      stderr(
+        "MP4 uploads support only --json. Folder, private-link, optimization, reuse, metadata, and AI-description options are image-only."
+      );
+      process.exit(1);
+    }
     let hadError = false;
 
     const idempotencyKey = args["idempotency-key"] as string | undefined;
@@ -148,6 +169,16 @@ export default defineCommand({
 
     for (const filePath of files) {
       try {
+        if (extname(filePath).toLowerCase() === ".mp4") {
+          const video = await uploadVideoFile(filePath, apiKey);
+          if (args.json) {
+            results.push(video);
+          } else {
+            stdout(video.url);
+          }
+          continue;
+        }
+
         const buffer = readFileSync(filePath);
         const fileName = basename(filePath);
 

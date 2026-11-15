@@ -7,6 +7,7 @@ interface RequestOptions {
   body?: unknown;
   headers?: Record<string, string>;
   formData?: FormData;
+  rawBody?: BodyInit;
 }
 
 interface ApiError {
@@ -17,7 +18,7 @@ interface ApiError {
 // this channel (server reads X-PixelVault-Client at register/device-login — see
 // pixelvault docs/specs/lead-attribution.md). Keep the version in sync with
 // package.json on release (tests/lib/version.test.ts fails if they drift).
-export const VERSION = "0.14.0";
+export const VERSION = "0.15.0";
 const CLIENT_ID = `pixelvault-cli/${VERSION}`;
 
 /** CliError carrying the API's machine-readable error details. */
@@ -60,18 +61,22 @@ export async function apiRequest<T>(
 
   if (options.formData) {
     fetchBody = options.formData;
-  } else if (options.body) {
+  } else if (options.rawBody !== undefined) {
+    fetchBody = options.rawBody;
+  } else if (options.body !== undefined) {
     headers["Content-Type"] = "application/json";
     fetchBody = JSON.stringify(options.body);
   }
 
   let res: Response;
   try {
-    res = await fetch(url, {
+    const init: RequestInit & { duplex?: "half" } = {
       method: options.method || "GET",
       headers,
       body: fetchBody,
-    });
+    };
+    if (fetchBody instanceof ReadableStream) init.duplex = "half";
+    res = await fetch(url, init);
   } catch (err) {
     throw new CliError(
       `Network error: ${err instanceof Error ? err.message : "Failed to connect"}`,
