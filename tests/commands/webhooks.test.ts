@@ -50,7 +50,7 @@ describe("webhooks commands", () => {
         id: "whk_one",
         url: "https://hooks.example.com/pv",
         description: "social",
-        events: ["video.optimization.completed"],
+        events: ["media.created"],
         active: true,
         created_at: "2026-11-16T00:00:00Z",
         updated_at: "2026-11-16T00:00:00Z",
@@ -61,7 +61,7 @@ describe("webhooks commands", () => {
       args: {
         url: "https://hooks.example.com/pv",
         description: "social",
-        events: "completed,completed",
+        events: "media.created,media.created",
         json: false,
       },
     });
@@ -74,7 +74,7 @@ describe("webhooks commands", () => {
         body: JSON.stringify({
           url: "https://hooks.example.com/pv",
           description: "social",
-          events: ["video.optimization.completed"],
+          events: ["media.created"],
         }),
       }),
     );

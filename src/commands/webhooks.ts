@@ -7,6 +7,12 @@ import { jsonOut, stderr, stdout } from "../lib/output.js";
 const EVENT_ALIASES = {
   completed: "video.optimization.completed",
   failed: "video.optimization.failed",
+  "media.created": "media.created",
+  "media.deleted": "media.deleted",
+  "image.description.completed": "image.description.completed",
+  "image.description.failed": "image.description.failed",
+  "export.completed": "export.completed",
+  "export.failed": "export.failed",
   "video.optimization.completed": "video.optimization.completed",
   "video.optimization.failed": "video.optimization.failed",
 } as const;
@@ -43,7 +49,8 @@ function parseEvents(value: string | undefined): WebhookEvent[] | undefined {
     const event = EVENT_ALIASES[part as keyof typeof EVENT_ALIASES];
     if (!event) {
       throw new CliError(
-        "--events accepts completed, failed, video.optimization.completed, or video.optimization.failed.",
+        `Unknown webhook event ${part}. Use media.created, media.deleted, image.description.completed, ` +
+          "image.description.failed, export.completed, export.failed, video.optimization.completed, or video.optimization.failed.",
         1,
       );
     }
@@ -106,7 +113,7 @@ const create = defineCommand({
   args: {
     url: { type: "positional", description: "Public HTTPS destination URL", required: true },
     description: { type: "string", description: "Endpoint description (max 100 chars)" },
-    events: { type: "string", description: "Comma-separated: completed,failed (default: both)" },
+    events: { type: "string", description: "Comma-separated lifecycle event names (default: all)" },
     json: { type: "boolean", description: "Output the complete endpoint as JSON", default: false },
   },
   async run({ args }) {
@@ -141,7 +148,7 @@ const update = defineCommand({
     id: { type: "positional", description: "Webhook id", required: true },
     url: { type: "string", description: "Replacement public HTTPS URL" },
     description: { type: "string", description: "Replacement description (empty string clears it)" },
-    events: { type: "string", description: "Comma-separated: completed,failed" },
+    events: { type: "string", description: "Comma-separated lifecycle event names" },
     pause: { type: "boolean", description: "Pause delivery", default: false },
     resume: { type: "boolean", description: "Resume delivery", default: false },
     json: { type: "boolean", description: "Output as JSON", default: false },
