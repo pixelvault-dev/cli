@@ -19,6 +19,8 @@ export interface VideoData {
   id: string;
   kind: "video";
   url: string;
+  original_url: string;
+  social_ready_url?: string;
   poster_url?: string;
   visibility: "public" | "private";
   mime_type: "video/mp4";
@@ -46,6 +48,7 @@ interface UploadSession {
 export interface VideoUploadOptions {
   private?: boolean;
   signExpiresIn?: number | null;
+  socialReady?: boolean;
 }
 
 function fileBody(filePath: string, start?: number, end?: number): ReadableStream<Uint8Array> {
@@ -79,6 +82,7 @@ export async function uploadVideoUrl(
       url: sourceUrl,
       visibility: options.private ? "private" : "public",
       ...(options.signExpiresIn ? { sign_expires_in: options.signExpiresIn } : {}),
+      ...(options.socialReady ? { social_ready: true } : {}),
     },
   });
   return data;
@@ -94,6 +98,10 @@ export async function uploadVideoFile(
   if (!stat.isFile() || stat.size <= 0) {
     throw new CliError("Video must be a non-empty file.", 1);
   }
+  if (options.socialReady && stat.size > DIRECT_MAX_BYTES) {
+    throw new CliError("Social-ready upload supports source MP4s up to 100 MB.", 1);
+  }
+
 
   const filename = basename(filePath);
   if (stat.size <= DIRECT_MAX_BYTES) {
@@ -107,6 +115,7 @@ export async function uploadVideoFile(
         "Content-Length": String(stat.size),
         "X-PixelVault-Filename": encodeURIComponent(filename),
         "X-PixelVault-Visibility": options.private ? "private" : "public",
+        ...(options.socialReady ? { "X-PixelVault-Social-Ready": "true" } : {}),
         ...(options.signExpiresIn
           ? { "X-PixelVault-Sign-Expires-In": String(options.signExpiresIn) }
           : {}),
@@ -149,8 +158,15 @@ export async function uploadVideoFile(
       method: "POST",
       path: `/v1/videos/uploads/${uploadId}/complete`,
       auth: apiKey,
-      ...(options.signExpiresIn
-        ? { headers: { "X-PixelVault-Sign-Expires-In": String(options.signExpiresIn) } }
+      ...((options.signExpiresIn || options.socialReady)
+        ? {
+            headers: {
+              ...(options.signExpiresIn
+                ? { "X-PixelVault-Sign-Expires-In": String(options.signExpiresIn) }
+                : {}),
+              ...(options.socialReady ? { "X-PixelVault-Social-Ready": "true" } : {}),
+            },
+          }
         : {}),
     });
     return data;

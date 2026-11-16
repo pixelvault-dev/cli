@@ -13,11 +13,16 @@ const video = {
   id: "vid_test",
   kind: "video" as const,
   url: "https://img.pixelvault.dev/proj_test/vid_test.mp4",
+  original_url: "https://img.pixelvault.dev/proj_test/vid_test.mp4",
   visibility: "public" as const,
   mime_type: "video/mp4" as const,
   size: 16,
   filename: "clip.mp4",
   created_at: "2026-11-15T00:00:00.000Z",
+  social_optimization: {
+    preset: "social" as const,
+    status: "not_requested" as const,
+  },
 };
 
 async function cancelBody(init?: RequestInit): Promise<void> {
@@ -49,6 +54,30 @@ describe("video upload client", () => {
     expect(isRemoteVideoUrl("/tmp/demo.mp4")).toBe(false);
   });
 
+  it("requests a social-ready copy for URL imports", async () => {
+    const sourceUrl = "https://media.example.com/demo.mp4";
+    const fetchMock = vi.fn(async (_url: string | URL, init?: RequestInit) => {
+      expect(JSON.parse(String(init?.body))).toEqual({
+        url: sourceUrl,
+        visibility: "public",
+        social_ready: true,
+      });
+      return Response.json({
+        data: {
+          ...video,
+          social_optimization: { preset: "social", status: "pending" },
+        },
+      }, { status: 201 });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(uploadVideoUrl(sourceUrl, "pv_live_test", {
+      socialReady: true,
+    })).resolves.toMatchObject({
+      social_optimization: { status: "pending" },
+    });
+  });
+
   it("sends private visibility and signed-link expiry for a direct MP4", async () => {
     const path = join(testDir, "clip.mp4");
     writeFileSync(path, Buffer.from("\0\0\0\x10ftypisom\0\0\0\0", "binary"));
@@ -66,6 +95,7 @@ describe("video upload client", () => {
         "X-PixelVault-Filename": "clip.mp4",
         "X-PixelVault-Visibility": "private",
         "X-PixelVault-Sign-Expires-In": "43200",
+        "X-PixelVault-Social-Ready": "true",
       });
       return Response.json({ data: privateVideo }, { status: 201 });
     });
@@ -74,6 +104,7 @@ describe("video upload client", () => {
     await expect(uploadVideoFile(path, "pv_live_test", {
       private: true,
       signExpiresIn: 43_200,
+      socialReady: true,
     })).resolves.toEqual(privateVideo);
     expect(fetchMock).toHaveBeenCalledOnce();
   });

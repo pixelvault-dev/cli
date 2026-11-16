@@ -9,6 +9,7 @@ import { parseMetadataFlags } from "../lib/metadata.js";
 import { waitForDescription, describeSummary, type ImageDescription } from "../lib/describe.js";
 import { stdout, stderr, jsonOut } from "../lib/output.js";
 import { isRemoteVideoUrl, uploadVideoFile, uploadVideoUrl } from "../lib/video-upload.js";
+import { waitForVideoOptimization } from "../lib/video-optimization.js";
 
 interface UploadResponse {
   data: {
@@ -66,6 +67,12 @@ export default defineCommand({
       type: "boolean",
       description:
         "Print the optimized URL (WebP/AVIF, usually much smaller) instead of the original; falls back to the original URL when none is returned (SVG, GIF, private)",
+      default: false,
+    },
+    social: {
+      type: "boolean",
+      description:
+        "For MP4 uploads, wait for and print a separate social-ready H.264/AAC fast-start URL; the original is preserved",
       default: false,
     },
     "idempotency-key": {
@@ -131,6 +138,13 @@ export default defineCommand({
     const hasVideo = files.some(
       (source) => isRemoteVideoUrl(source) || extname(source).toLowerCase() === ".mp4"
     );
+    const allVideo = files.every(
+      (source) => isRemoteVideoUrl(source) || extname(source).toLowerCase() === ".mp4"
+    );
+    if (args.social && !allVideo) {
+      stderr("--social only applies to MP4 file or URL uploads.");
+      process.exit(1);
+    }
     const imageOnlyOption =
       args.folder ||
       args.optimized ||
@@ -174,21 +188,47 @@ export default defineCommand({
           const options = {
             private: Boolean(args.private),
             signExpiresIn: signExpires,
+            socialReady: Boolean(args.social),
           };
-          const video = isRemoteVideoUrl(filePath)
+          let video = isRemoteVideoUrl(filePath)
             ? await uploadVideoUrl(filePath, apiKey, options)
             : await uploadVideoFile(filePath, apiKey, options);
           if (args.private && video.visibility !== "private") {
             throw new Error("The API did not confirm private visibility; refusing to print the URL.");
           }
-          if (video.social_compatible === false) {
+          if (args.social) {
+            video = await waitForVideoOptimization(video, apiKey);
+            const optimization = video.social_optimization;
+            if (optimization.status === "failed") {
+              hadError = true;
+              stderr(
+                `Uploaded ${filePath} at ${video.original_url}, but social-ready conversion failed: ` +
+                (optimization.error?.message ?? "Try again with pixelvault optimize-video.")
+              );
+              if (args.json) results.push(video);
+              continue;
+            }
+            if (
+              (optimization.status !== "complete" && optimization.status !== "not_needed")
+              || !optimization.url
+            ) {
+              hadError = true;
+              stderr(
+                `Uploaded ${filePath} at ${video.original_url}; optimization is still ${optimization.status}. ` +
+                `Check it with pixelvault optimize-video ${video.id}.`
+              );
+              if (args.json) results.push(video);
+              continue;
+            }
+          }
+          if (!args.social && video.social_compatible === false) {
             const detail = video.compatibility_warnings.map(({ message }) => message).join(" ");
             stderr(`Video compatibility warning: ${detail || "social compatibility could not be verified."}`);
           }
           if (args.json) {
             results.push(video);
           } else {
-            stdout(video.url);
+            stdout(args.social ? video.social_optimization.url! : video.url);
           }
           continue;
         }

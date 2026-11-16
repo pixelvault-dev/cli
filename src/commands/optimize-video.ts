@@ -1,38 +1,11 @@
-import { setTimeout as delay } from "node:timers/promises";
 import { defineCommand } from "citty";
 import { apiRequest } from "../lib/client.js";
 import { requireApiKey } from "../lib/config.js";
 import { CliError } from "../lib/errors.js";
 import { jsonOut, stderr, stdout } from "../lib/output.js";
 import type { VideoData } from "../lib/video-upload.js";
+import { waitForVideoOptimization } from "../lib/video-optimization.js";
 
-const POLL_INTERVAL_MS = 2_000;
-const WAIT_TIMEOUT_MS = 5 * 60 * 1_000;
-
-async function getVideo(id: string, apiKey: string): Promise<VideoData> {
-  const response = await apiRequest<{ data: VideoData }>({
-    path: `/v1/videos/${encodeURIComponent(id)}`,
-    auth: apiKey,
-  });
-  return response.data;
-}
-
-async function waitForOptimization(
-  initial: VideoData,
-  apiKey: string,
-): Promise<VideoData> {
-  let video = initial;
-  const deadline = Date.now() + WAIT_TIMEOUT_MS;
-  while (
-    video.social_optimization.status === "pending"
-    || video.social_optimization.status === "processing"
-  ) {
-    if (Date.now() >= deadline) return video;
-    await delay(POLL_INTERVAL_MS);
-    video = await getVideo(video.id, apiKey);
-  }
-  return video;
-}
 
 export default defineCommand({
   meta: {
@@ -65,7 +38,7 @@ export default defineCommand({
       auth: apiKey,
     });
 
-    if (args.wait) data = await waitForOptimization(data, apiKey);
+    if (args.wait) data = await waitForVideoOptimization(data, apiKey);
     const optimization = data.social_optimization;
     if (optimization.status === "failed") {
       throw new CliError(

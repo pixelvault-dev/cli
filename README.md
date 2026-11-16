@@ -44,7 +44,10 @@ pixelvault upload "https://media.example.com/demo.mp4"
 # Private video + expiry-matched signed poster URL
 pixelvault upload demo.mp4 --private --expires 12h --json
 
-# Preserve the original and print a social-ready H.264/AAC fast-start URL
+# Upload, convert, wait, and print a social-ready H.264/AAC fast-start URL
+pixelvault upload demo.mp4 --social
+
+# Convert an existing hosted video
 pixelvault optimize-video vid_xyz
 
 # List your images
@@ -75,9 +78,9 @@ pixelvault export -o my-images.tar
 The CLI is designed for AI coding agents. Output contract:
 
 - `upload` prints **only the URL** to stdout for images and MP4 videos (add `--optimized` for the smaller WebP/AVIF image variant; it falls back to the original URL for SVG, GIF and private images)
-- `upload` streams local MP4 files and automatically switches to multipart upload above 100 MB. It also accepts public MP4 URLs and has PixelVault import them directly. `--private [--expires 12h]` returns signed video and poster URLs. Every video response includes duration, dimensions, codecs, fast-start status, and social-compatibility warnings; warnings go to stderr while the URL remains clean on stdout. Video limits: Free 25 MB, Starter 100 MB, Pro 250 MB
-- `optimize-video` waits for the derived social-ready URL and prints only that URL to stdout; `--no-wait` enqueues and returns, while `--json` returns the full state
-- Image uploads support `--idempotency-key` and `--dedupe`; folder, optimization, reuse, metadata, and AI-description options are rejected for MP4 files and URLs
+- `upload` streams local MP4 files and automatically switches to multipart upload above 100 MB. It also accepts public MP4 URLs and has PixelVault import them directly. `--private [--expires 12h]` returns signed video and poster URLs. `--social` requests a separate H.264/AAC fast-start copy, waits for it, and prints the post-ready URL while preserving the original; `--json` returns both `original_url` and `social_ready_url`. Every video response includes duration, dimensions, codecs, fast-start status, and social-compatibility warnings. Video limits: Free 25 MB, Starter 100 MB, Pro 250 MB
+- `optimize-video` converts an existing upload, waits for the derived social-ready URL, and prints only that URL; `--no-wait` enqueues and returns, while `--json` returns the full state
+- Image uploads support `--idempotency-key` and `--dedupe`; folder, image optimization, reuse, metadata, and AI-description options are rejected for MP4 files and URLs
 - `list` outputs one URL per line
 - `meta` prints the stored metadata as JSON
 - `delete` outputs nothing on success
@@ -129,28 +132,34 @@ npx pixelvault-cli upload build-output.png
 pixelvault upload photo.jpg              # Single file
 pixelvault upload *.png --folder icons   # Bulk with folder
 pixelvault upload shot.png --json        # Full JSON response
-pixelvault upload demo.mp4 --json                                  # Stream a local MP4; response includes poster_url
-pixelvault upload "https://media.example.com/demo.mp4" --private --expires 12h --json
+pixelvault upload demo.mp4 --social        # Upload + wait; prints the post-ready URL
+pixelvault upload demo.mp4 --social --json # Includes original_url and social_ready_url
+pixelvault upload "https://media.example.com/demo.mp4" --private --expires 12h --social --json
 pixelvault upload shot.png --meta env=prod --meta run=42   # Tag with custom metadata (key=value, repeatable)
 pixelvault upload shot.png --metadata '{"n":3}'           # ...or a JSON object (typed values)
 pixelvault upload shot.png --describe                      # AI alt text + caption + OCR in the background
 pixelvault upload shot.png --describe --wait --json        # ...wait (~10s) and include it in the JSON
 ```
 
-MP4 file and URL uploads support `--private`, `--expires`, and `--json`; image-only
-options such as `--folder`, `--optimized`, reuse, metadata, and AI descriptions
-are rejected. PixelVault stores the original video without transcoding and returns
-a generated JPEG `poster_url` when frame extraction succeeds. The response also
-reports duration, dimensions, codecs, fast-start layout, `social_compatible`, and
-actionable `compatibility_warnings`; questionable MP4s are preserved rather than
-rejected. Remote imports require a public HTTP(S) URL whose response includes a
-valid `Content-Length`; PixelVault fetches the video directly. Maximum video size
-is 25 MB on Free, 100 MB on Starter, and 250 MB on Pro.
+MP4 file and URL uploads support `--private`, `--expires`, `--social`, and
+`--json`; image-only options such as `--folder`, `--optimized`, reuse, metadata,
+and AI descriptions are rejected. PixelVault stores the original video unchanged
+and returns a generated JPEG `poster_url` when frame extraction succeeds.
+`--social` creates a separate H.264/AAC fast-start copy, waits for it, and prints
+that URL; JSON output retains both `original_url` and `social_ready_url`. The
+response also reports duration, dimensions, codecs, fast-start layout,
+`social_compatible`, and actionable `compatibility_warnings`; questionable MP4s
+are preserved rather than rejected. Remote imports require a public HTTP(S) URL
+whose response includes a valid `Content-Length`; PixelVault fetches the video
+directly. Maximum video size is 25 MB on Free, 100 MB on Starter, and 250 MB on
+Pro.
 
 ### Social-ready Video Options
 
 ```bash
-pixelvault optimize-video vid_xyz          # waits up to five minutes; prints the social-ready URL
+pixelvault upload demo.mp4 --social        # upload + wait; prints social-ready URL
+pixelvault upload demo.mp4 --social --json # original and social-ready URLs
+pixelvault optimize-video vid_xyz          # convert an existing upload
 pixelvault optimize-video vid_xyz --no-wait
 pixelvault optimize-video vid_xyz --json
 ```
