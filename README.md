@@ -60,6 +60,19 @@ pixelvault enrich-video demo.mp4
 # Resume the same server job without uploading again
 pixelvault enrich-video vid_xyz
 
+# Host original MP3/WAV/M4A/OGG audio; prints the original-byte CDN URL
+pixelvault audio upload episode.mp3
+
+# Private audio with a 12-hour signed link and 7-day asset deletion TTL
+pixelvault audio upload episode.m4a --private --link-expires 12h --delete-after 7d --json
+
+# Import, discover, update, re-sign, or delete by stable aud_ ID
+pixelvault audio upload "https://media.example.com/episode.ogg" --json
+pixelvault audio list --folder podcasts --json
+pixelvault audio get aud_xyz --json
+pixelvault audio sign aud_xyz --expires 1h
+pixelvault audio delete aud_xyz
+
 # List your images
 pixelvault list
 
@@ -79,8 +92,8 @@ pixelvault keys list
 KEY=$(pixelvault keys create --label ci)   # raw key on stdout, shown once
 pixelvault keys revoke key_abc123
 
-# Export everything — all your images as a tar archive (no lock-in)
-pixelvault export -o my-images.tar
+# Export everything — manifest plus all project media and derived artifacts (no lock-in)
+pixelvault export -o pixelvault-export.tar
 ```
 
 ## Agent Integration
@@ -91,6 +104,8 @@ The CLI is designed for AI coding agents. Output contract:
 - `upload` streams local MP4 files and automatically switches to multipart upload above 100 MB. It also accepts public MP4 URLs and has PixelVault import them directly. `--private [--expires 12h]` returns signed video and poster URLs. `--social` requests a separate H.264/AAC fast-start copy, waits for it, and prints the post-ready URL while preserving the original; `--json` returns both `original_url` and `social_ready_url`. Every video response includes duration, dimensions, codecs, fast-start status, and social-compatibility warnings. Video limits: Free 25 MB, Starter 100 MB, Pro 250 MB
 - `optimize-video` converts an existing upload, waits for the derived social-ready URL, and prints only that URL; `--no-wait` enqueues and returns, while `--json` returns the full state
 - `enrich-video` uploads a local MP4 or reuses an existing `vid_` asset, starts or resumes transcript + storyboard enrichment, and reports the stable asset/job IDs before bounded polling
+- `audio upload` hosts original MP3, PCM/float WAV, AAC M4A, or Opus/Vorbis OGG from a local path or public URL; actual bytes are validated. The approved global maximum is 25,000,000 bytes (not a plan allowance). `--json` returns the stable `aud_` ID, detected codec/duration/sample rate/channels, privacy, and expiry
+- `audio list|get|update|sign|delete` cover discovery, organization, fresh private links, and deletion without public fallbacks
 - Image and PDF uploads support `--idempotency-key` and `--dedupe`; folder, image optimization, reuse, metadata, and AI-description options are rejected for MP4 files and URLs
 - `list` outputs one URL per line
 - `meta` prints the stored metadata as JSON
@@ -127,10 +142,12 @@ npx pixelvault-cli upload build-output.png
 | `optimize <files...>` | Compress images locally — no account needed (resize, convert, strip metadata; never writes a bigger file) |
 | `optimize-video <id>` | Preserve a hosted MP4 and create a social-ready H.264/AAC fast-start copy |
 | `enrich-video <file.mp4\|vid_id>` | Upload or resume transcript + storyboard enrichment, with bounded polling and structured artifact access data |
+| `audio upload <path-or-url>` | Host original MP3/WAV/M4A/OGG bytes with privacy, TTL, metadata, organization, and retry safety |
+| `audio list\|get\|update\|sign\|delete` | Discover and manage audio by stable `aud_` asset ID |
 | `get <id>` | Get an image's URL/metadata, or download it (optionally transformed) |
 | `meta <id>` | Replace an image's custom metadata (`--meta k=v`, `--metadata '<json>'`, or `--clear`) |
 | `delete <id>` | Delete an image |
-| `export` | Export all project images as a tar archive |
+| `export` | Export all project media and derived artifacts with a manifest |
 | `usage` | Show plan, period, storage/upload/bandwidth usage and limits, and AI generation credits |
 | `keys list\|create\|revoke` | List, create, and revoke the project's secret API keys |
 | `upgrade <starter\|pro>` | Print a Stripe Checkout URL to subscribe (live key; you pay in the browser) |
@@ -212,6 +229,34 @@ Videos without audio return a skipped transcript and still produce a storyboard.
 Quota, duration, size, unavailable-metadata, failed-job, and local-timeout states
 exit explicitly. Monthly source minutes are Free 2, Starter 30, and Pro 120;
 check `pixelvault usage` for the current allowance and reset.
+
+### Audio Hosting
+
+```bash
+pixelvault audio upload episode.mp3
+pixelvault audio upload episode.wav --idempotency-key episode-v1 --json
+pixelvault audio upload "https://media.example.com/episode.m4a" --folder podcasts --json
+pixelvault audio upload private.ogg --private --link-expires 12h --delete-after 7d --json
+pixelvault audio list --folder podcasts --json
+pixelvault audio get aud_xyz --json
+pixelvault audio update aud_xyz --folder archive --meta episode=7 --json
+pixelvault audio sign aud_xyz --expires 1h
+pixelvault audio delete aud_xyz
+```
+
+Audio hosting preserves original bytes and accepts MP3, PCM integer/IEEE-float
+WAV, AAC in M4A, and Opus or Vorbis in OGG. PixelVault validates the actual
+container and codec, not only the extension or supplied MIME type. The approved
+global original-file maximum is 25,000,000 bytes; it is not a plan allowance or
+capacity reservation. Existing storage, upload, bandwidth, private-asset, and
+retention rules apply.
+
+`--link-expires` controls only the private bearer URL. `--delete-after` deletes
+the asset. Local uploads with `--idempotency-key` send a byte checksum; exact
+retries return the original asset, while conflicting inputs fail. URL import is
+server-side and keeps the same product limit. Private assets never fall back to
+a public URL; use `audio sign` to mint a fresh link. Audio editing, conversion,
+HLS/DASH, and transcription are intentionally unsupported.
 
 ### Generate Options
 
