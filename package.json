@@ -1,7 +1,7 @@
 {
   "name": "pixelvault-cli",
   "version": "0.20.0",
-  "description": "CLI for PixelVault — agent-first image and video hosting",
+  "description": "CLI for PixelVault — agent-first image, PDF, and video hosting",
   "type": "module",
   "bin": {
     "pixelvault": "bin/pixelvault.mjs"
@@ -21,6 +21,7 @@
   "keywords": [
     "pixelvault",
     "image-hosting",
+    "pdf-hosting",
     "video-hosting",
     "cli",
     "agent",
