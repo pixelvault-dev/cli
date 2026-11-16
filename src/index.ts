@@ -24,6 +24,7 @@ const main = defineCommand({
     export: () => import("./commands/export.js").then((m) => m.default),
     usage: () => import("./commands/usage.js").then((m) => m.default),
     keys: () => import("./commands/keys.js").then((m) => m.default),
+    webhooks: () => import("./commands/webhooks.js").then((m) => m.default),
     upgrade: () => import("./commands/upgrade.js").then((m) => m.default),
     billing: () => import("./commands/billing.js").then((m) => m.default),
     whoami: () => import("./commands/whoami.js").then((m) => m.default),
