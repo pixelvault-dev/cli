@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/pixelvault-cli)](https://www.npmjs.com/package/pixelvault-cli)
 [![CI](https://github.com/pixelvault-dev/cli/actions/workflows/ci.yml/badge.svg)](https://github.com/pixelvault-dev/cli/actions/workflows/ci.yml)
 
-CLI for [PixelVault](https://pixelvault.dev) — agent-first image, PDF, and video hosting for developers and AI coding agents.
+CLI for [PixelVault](https://pixelvault.dev) — agent-first media hosting for developers and AI coding agents.
 
 ## Install
 
@@ -54,6 +54,12 @@ pixelvault upload demo.mp4 --social
 # Convert an existing hosted video
 pixelvault optimize-video vid_xyz
 
+# Upload a local MP4, enrich it, wait, and print original/transcript/storyboard URLs
+pixelvault enrich-video demo.mp4
+
+# Resume the same server job without uploading again
+pixelvault enrich-video vid_xyz
+
 # List your images
 pixelvault list
 
@@ -84,6 +90,7 @@ The CLI is designed for AI coding agents. Output contract:
 - `upload` prints **only the URL** to stdout for images, PDFs, and MP4 videos. PDFs are served as forced downloads and do not support image transforms. Add `--optimized` for the smaller WebP/AVIF image variant; it falls back to the original URL for SVG, GIF, PDF, and private images
 - `upload` streams local MP4 files and automatically switches to multipart upload above 100 MB. It also accepts public MP4 URLs and has PixelVault import them directly. `--private [--expires 12h]` returns signed video and poster URLs. `--social` requests a separate H.264/AAC fast-start copy, waits for it, and prints the post-ready URL while preserving the original; `--json` returns both `original_url` and `social_ready_url`. Every video response includes duration, dimensions, codecs, fast-start status, and social-compatibility warnings. Video limits: Free 25 MB, Starter 100 MB, Pro 250 MB
 - `optimize-video` converts an existing upload, waits for the derived social-ready URL, and prints only that URL; `--no-wait` enqueues and returns, while `--json` returns the full state
+- `enrich-video` uploads a local MP4 or reuses an existing `vid_` asset, starts or resumes transcript + storyboard enrichment, and reports the stable asset/job IDs before bounded polling
 - Image and PDF uploads support `--idempotency-key` and `--dedupe`; folder, image optimization, reuse, metadata, and AI-description options are rejected for MP4 files and URLs
 - `list` outputs one URL per line
 - `meta` prints the stored metadata as JSON
@@ -119,6 +126,7 @@ npx pixelvault-cli upload build-output.png
 | `describe <id>` | Write an AI description (alt text, caption, OCR, tags) for an image you already uploaded |
 | `optimize <files...>` | Compress images locally — no account needed (resize, convert, strip metadata; never writes a bigger file) |
 | `optimize-video <id>` | Preserve a hosted MP4 and create a social-ready H.264/AAC fast-start copy |
+| `enrich-video <file.mp4\|vid_id>` | Upload or resume transcript + storyboard enrichment, with bounded polling and structured artifact access data |
 | `get <id>` | Get an image's URL/metadata, or download it (optionally transformed) |
 | `meta <id>` | Replace an image's custom metadata (`--meta k=v`, `--metadata '<json>'`, or `--clear`) |
 | `delete <id>` | Delete an image |
@@ -173,6 +181,37 @@ per month, Starter 30 minutes, and Pro 120 minutes. The command is idempotent:
 an already-compatible original is returned unchanged, a running job is reused,
 and a completed derivative is returned without another conversion. Failed jobs
 refund their reserved seconds.
+
+### Video Enrichment Options
+
+```bash
+pixelvault enrich-video demo.mp4                 # upload + enrich + wait
+pixelvault enrich-video demo.mp4 --private       # private original and signed artifacts
+pixelvault enrich-video demo.mp4 --no-wait --json
+pixelvault enrich-video vid_xyz                  # resume/reuse an existing job
+pixelvault enrich-video vid_xyz --timeout 1200 --json
+```
+
+The command accepts a local MP4 or an existing PixelVault video asset ID. URL
+sources are intentionally rejected: import one with `pixelvault upload <url>
+--json`, then pass the returned `vid_` ID. Enrichment accepts sources from 1
+second through 10 minutes and at most 100 MB. It is idempotent while queued,
+running, or complete; retrying a failed job creates a new job ID.
+
+Polling backs off from one to ten seconds and stops after 600 seconds by default
+(`--timeout` changes the local bound). A timeout exits non-zero but does not
+cancel the server job; rerun the printed resume command. `--no-wait` returns the
+queued/running state immediately. Human output keeps URLs on stdout and progress,
+asset/job IDs, artifact types, visibility, and signed-link expiry on stderr.
+`--json` returns one object with `asset_id`, `job_id`, explicit state,
+`resume_command`, and only the artifact URLs that currently exist. Private
+artifacts inherit the video's privacy; the command never changes an existing
+asset's visibility.
+
+Videos without audio return a skipped transcript and still produce a storyboard.
+Quota, duration, size, unavailable-metadata, failed-job, and local-timeout states
+exit explicitly. Monthly source minutes are Free 2, Starter 30, and Pro 120;
+check `pixelvault usage` for the current allowance and reset.
 
 ### Generate Options
 
@@ -352,7 +391,7 @@ pixelvault config get api_key            # Get a value
 
 ## Learn more
 
-- [PixelVault](https://pixelvault.dev) — agent-first image hosting
+- [PixelVault](https://pixelvault.dev) — agent-first media hosting
 - [API docs](https://pixelvault.dev/docs/) — full REST reference + OpenAPI 3.1
 - [Guide: Image hosting for AI agents](https://pixelvault.dev/blog/image-hosting-for-ai-agents/)
 - [The simplest image hosting API](https://pixelvault.dev/image-hosting-api/)
