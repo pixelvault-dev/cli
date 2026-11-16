@@ -1,6 +1,6 @@
 {
   "name": "pixelvault-cli",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "description": "CLI for PixelVault — agent-first image, PDF, and video hosting",
   "type": "module",
   "bin": {
