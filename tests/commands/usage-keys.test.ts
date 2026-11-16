@@ -5,7 +5,7 @@ vi.mock("../../src/lib/config.js", () => ({
   getApiUrl: () => "https://api.test.pixelvault.dev",
 }));
 
-const { default: usage } = await import("../../src/commands/usage.js");
+const { default: usage, renderUsage } = await import("../../src/commands/usage.js");
 const { default: keys } = await import("../../src/commands/keys.js");
 const { formatBytes } = await import("../../src/lib/output.js");
 
@@ -23,6 +23,17 @@ const USAGE = {
     bandwidth_bytes_per_month: 10 * 1024 ** 3,
   },
   remaining: { storage_bytes: 1024 ** 3 - 5 * 1024 * 1024, uploads: 488 },
+  bandwidth: {
+    status: "unavailable" as const,
+    used: null,
+    remaining: null,
+    limit: 10 * 1024 ** 3,
+    unit: "bytes" as const,
+    accounting_period: "2026-10",
+    resets_at: "2026-11-01T00:00:00Z",
+    measured_at: null,
+    freshness: "unavailable" as const,
+  },
 };
 
 function mockFetch(status: number, body: unknown, headers: Record<string, string> = {}) {
@@ -75,7 +86,7 @@ describe("usage / keys commands", () => {
       expect(out).toContain("2026-10");
       expect(out).toContain("5 MB used / 1 GB limit");
       expect(out).toContain("12 used / 500 limit / 488 remaining");
-      expect(out).toContain("10 GB limit per month");
+      expect(out).toContain("10 GB limit for 2026-10 (used and remaining unknown; accounting unavailable)");
       expect(err).toBe("");
     });
 
@@ -94,6 +105,34 @@ describe("usage / keys commands", () => {
       mockFetch(200, { data: USAGE });
       await usage.run!({ args: { json: false } } as any);
       expect(out).not.toContain("AI images");
+    });
+
+    it("distinguishes zero, delayed accounting, and unlimited bandwidth", () => {
+      const available = renderUsage({
+        ...USAGE,
+        bandwidth: {
+          ...USAGE.bandwidth,
+          status: "available",
+          used: 0,
+          remaining: 10 * 1024 ** 3,
+          measured_at: "2026-10-24T09:55:00Z",
+          freshness: "delayed",
+        },
+      });
+      expect(available).toContain("Bandwidth: 0 B used / 10 GB limit / 10 GB remaining (delayed)");
+
+      const unlimited = renderUsage({
+        ...USAGE,
+        bandwidth: {
+          ...USAGE.bandwidth,
+          status: "unlimited",
+          used: 1024,
+          remaining: null,
+          limit: null,
+          freshness: "not_applicable",
+        },
+      });
+      expect(unlimited).toContain("Bandwidth: 1 KB used / unlimited");
     });
 
     it("--json prints the data object", async () => {
