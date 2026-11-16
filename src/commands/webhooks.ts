@@ -15,6 +15,8 @@ const EVENT_ALIASES = {
   "export.failed": "export.failed",
   "video.optimization.completed": "video.optimization.completed",
   "video.optimization.failed": "video.optimization.failed",
+  "video.enrichment.completed": "video.enrichment.completed",
+  "video.enrichment.failed": "video.enrichment.failed",
 } as const;
 type WebhookEvent = (typeof EVENT_ALIASES)[keyof typeof EVENT_ALIASES];
 
@@ -50,7 +52,8 @@ function parseEvents(value: string | undefined): WebhookEvent[] | undefined {
     if (!event) {
       throw new CliError(
         `Unknown webhook event ${part}. Use media.created, media.deleted, image.description.completed, ` +
-          "image.description.failed, export.completed, export.failed, video.optimization.completed, or video.optimization.failed.",
+          "image.description.failed, export.completed, export.failed, video.optimization.completed, " +
+          "video.optimization.failed, video.enrichment.completed, or video.enrichment.failed.",
         1,
       );
     }
