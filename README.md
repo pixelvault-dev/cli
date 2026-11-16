@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/pixelvault-cli)](https://www.npmjs.com/package/pixelvault-cli)
 [![CI](https://github.com/pixelvault-dev/cli/actions/workflows/ci.yml/badge.svg)](https://github.com/pixelvault-dev/cli/actions/workflows/ci.yml)
 
-CLI for [PixelVault](https://pixelvault.dev) — agent-first image and video hosting for developers and AI coding agents.
+CLI for [PixelVault](https://pixelvault.dev) — agent-first image, PDF, and video hosting for developers and AI coding agents.
 
 ## Install
 
@@ -29,6 +29,10 @@ pixelvault register --email you@example.com --passwordless
 # Upload an image — prints the URL to stdout
 pixelvault upload screenshot.png
 # https://img.pixelvault.dev/proj_abc/img_xyz.png
+
+# Upload a PDF — the URL always downloads the original file
+pixelvault upload report.pdf
+# https://img.pixelvault.dev/proj_abc/img_xyz.pdf
 
 # Upload multiple images
 pixelvault upload *.png --folder screenshots
@@ -77,10 +81,10 @@ pixelvault export -o my-images.tar
 
 The CLI is designed for AI coding agents. Output contract:
 
-- `upload` prints **only the URL** to stdout for images and MP4 videos (add `--optimized` for the smaller WebP/AVIF image variant; it falls back to the original URL for SVG, GIF and private images)
+- `upload` prints **only the URL** to stdout for images, PDFs, and MP4 videos. PDFs are served as forced downloads and do not support image transforms. Add `--optimized` for the smaller WebP/AVIF image variant; it falls back to the original URL for SVG, GIF, PDF, and private images
 - `upload` streams local MP4 files and automatically switches to multipart upload above 100 MB. It also accepts public MP4 URLs and has PixelVault import them directly. `--private [--expires 12h]` returns signed video and poster URLs. `--social` requests a separate H.264/AAC fast-start copy, waits for it, and prints the post-ready URL while preserving the original; `--json` returns both `original_url` and `social_ready_url`. Every video response includes duration, dimensions, codecs, fast-start status, and social-compatibility warnings. Video limits: Free 25 MB, Starter 100 MB, Pro 250 MB
 - `optimize-video` converts an existing upload, waits for the derived social-ready URL, and prints only that URL; `--no-wait` enqueues and returns, while `--json` returns the full state
-- Image uploads support `--idempotency-key` and `--dedupe`; folder, image optimization, reuse, metadata, and AI-description options are rejected for MP4 files and URLs
+- Image and PDF uploads support `--idempotency-key` and `--dedupe`; folder, image optimization, reuse, metadata, and AI-description options are rejected for MP4 files and URLs
 - `list` outputs one URL per line
 - `meta` prints the stored metadata as JSON
 - `delete` outputs nothing on success
@@ -108,7 +112,7 @@ npx pixelvault-cli upload build-output.png
 |---------|-------------|
 | `register` | Create a new account |
 | `login` | Log in to existing account |
-| `upload <files-or-urls...>` | Upload images, MP4 files, or public MP4 URLs (prints URLs to stdout) |
+| `upload <files-or-urls...>` | Upload images, PDFs, MP4 files, or public MP4 URLs (prints URLs to stdout) |
 | `generate <prompt>` | Generate an image from a prompt and host it (prints the URL; spends monthly AI credits) |
 | `list` | List uploaded images (filter by `--tag`, `--search`, `--meta`) |
 | `tags` | List the AI tags on your described images with counts |

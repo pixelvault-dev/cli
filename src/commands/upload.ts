@@ -14,7 +14,7 @@ import { waitForVideoOptimization } from "../lib/video-optimization.js";
 interface UploadResponse {
   data: {
     id: string;
-    kind?: "image" | "video";
+    kind?: "image" | "document" | "video";
     url: string;
     optimized_url?: string;
     poster_url?: string;
@@ -40,12 +40,12 @@ interface UploadResponse {
 export default defineCommand({
   meta: {
     name: "upload",
-    description: "Upload one or more images, MP4 files, or public MP4 URLs",
+    description: "Upload one or more images, PDFs, MP4 files, or public MP4 URLs",
   },
   args: {
     files: {
       type: "positional",
-      description: "Image/MP4 file path(s), or public MP4 URL(s), to upload",
+      description: "Image/PDF/MP4 file path(s), or public MP4 URL(s), to upload",
       required: true,
     },
     folder: {
@@ -78,12 +78,12 @@ export default defineCommand({
     "idempotency-key": {
       type: "string",
       description:
-        "Make retries safe: repeating the same key with the same file returns the original image instead of storing a copy (single file only)",
+        "Make retries safe: repeating the same key with the same file returns the original upload instead of storing a copy (single file only)",
     },
     dedupe: {
       type: "boolean",
       description:
-        "Reuse an identical image already in your project instead of storing and counting another upload",
+        "Reuse an identical image or PDF already in your project instead of storing and counting another upload",
       default: false,
     },
     meta: {
