@@ -18,6 +18,7 @@ const main = defineCommand({
     describe: () => import("./commands/describe.js").then((m) => m.default),
     optimize: () => import("./commands/optimize.js").then((m) => m.default),
     "optimize-video": () => import("./commands/optimize-video.js").then((m) => m.default),
+    "enrich-video": () => import("./commands/enrich-video.js").then((m) => m.default),
     get: () => import("./commands/get.js").then((m) => m.default),
     meta: () => import("./commands/meta.js").then((m) => m.default),
     delete: () => import("./commands/delete.js").then((m) => m.default),

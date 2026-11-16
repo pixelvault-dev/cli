@@ -54,6 +54,9 @@ pixelvault upload demo.mp4 --social
 # Convert an existing hosted video
 pixelvault optimize-video vid_xyz
 
+# Generate transcript + storyboard artifacts for an existing hosted video
+pixelvault enrich-video vid_xyz
+
 # List your images
 pixelvault list
 
@@ -84,6 +87,7 @@ The CLI is designed for AI coding agents. Output contract:
 - `upload` prints **only the URL** to stdout for images, PDFs, and MP4 videos. PDFs are served as forced downloads and do not support image transforms. Add `--optimized` for the smaller WebP/AVIF image variant; it falls back to the original URL for SVG, GIF, PDF, and private images
 - `upload` streams local MP4 files and automatically switches to multipart upload above 100 MB. It also accepts public MP4 URLs and has PixelVault import them directly. `--private [--expires 12h]` returns signed video and poster URLs. `--social` requests a separate H.264/AAC fast-start copy, waits for it, and prints the post-ready URL while preserving the original; `--json` returns both `original_url` and `social_ready_url`. Every video response includes duration, dimensions, codecs, fast-start status, and social-compatibility warnings. Video limits: Free 25 MB, Starter 100 MB, Pro 250 MB
 - `optimize-video` converts an existing upload, waits for the derived social-ready URL, and prints only that URL; `--no-wait` enqueues and returns, while `--json` returns the full state
+- `enrich-video` generates plain-text, WebVTT, timestamped JSON, and storyboard artifacts for an owned upload; stdout is the enrichment JSON, `--no-wait` enqueues, and `--json` returns the full video state
 - Image and PDF uploads support `--idempotency-key` and `--dedupe`; folder, image optimization, reuse, metadata, and AI-description options are rejected for MP4 files and URLs
 - `list` outputs one URL per line
 - `meta` prints the stored metadata as JSON
@@ -119,6 +123,7 @@ npx pixelvault-cli upload build-output.png
 | `describe <id>` | Write an AI description (alt text, caption, OCR, tags) for an image you already uploaded |
 | `optimize <files...>` | Compress images locally — no account needed (resize, convert, strip metadata; never writes a bigger file) |
 | `optimize-video <id>` | Preserve a hosted MP4 and create a social-ready H.264/AAC fast-start copy |
+| `enrich-video <id>` | Generate transcript and storyboard artifacts for an owned hosted MP4 |
 | `get <id>` | Get an image's URL/metadata, or download it (optionally transformed) |
 | `meta <id>` | Replace an image's custom metadata (`--meta k=v`, `--metadata '<json>'`, or `--clear`) |
 | `delete <id>` | Delete an image |
@@ -173,6 +178,22 @@ per month, Starter 30 minutes, and Pro 120 minutes. The command is idempotent:
 an already-compatible original is returned unchanged, a running job is reused,
 and a completed derivative is returned without another conversion. Failed jobs
 refund their reserved seconds.
+
+### Transcript and Storyboard Enrichment
+
+```bash
+pixelvault enrich-video vid_xyz             # wait; print enrichment JSON
+pixelvault enrich-video vid_xyz --no-wait   # enqueue and return pending state
+pixelvault enrich-video vid_xyz --json      # full video response
+```
+
+Enrichment generates a plain-text transcript, timed WebVTT captions,
+timestamped JSON segments, a storyboard index, and bounded JPEG sheets. Silent
+videos skip the transcript but still receive a storyboard. Sources must be 1
+second through 10 minutes and at most 100 MB. Monthly source-minute allowances
+are 2 on Free, 30 on Starter, and 120 on Pro. The remaining allowance must cover
+the full source duration. Artifacts inherit the video's public or private
+visibility and are removed with the source.
 
 ### Generate Options
 

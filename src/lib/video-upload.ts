@@ -15,6 +15,35 @@ export interface VideoSocialOptimization {
   error?: { code: string; message: string };
 }
 
+export interface VideoEnrichment {
+  status: "not_requested" | "pending" | "processing" | "complete" | "failed";
+  requested_at?: string;
+  completed_at?: string | null;
+  transcript?: {
+    status: "complete" | "skipped";
+    text_url?: string;
+    vtt_url?: string;
+    segments_url?: string;
+    language?: string | null;
+    languages?: string[];
+    model?: string | null;
+    segment_count?: number;
+    reason?: "no_audio";
+  };
+  storyboard?: {
+    status: "complete";
+    index_url: string;
+    frame_count: number;
+    sheets: {
+      url: string;
+      start_seconds: number;
+      end_seconds: number;
+      frame_count: number;
+    }[];
+  } | null;
+  error?: { code: string; message: string };
+}
+
 export interface VideoData {
   id: string;
   kind: "video";
@@ -38,6 +67,7 @@ export interface VideoData {
   social_compatible: boolean | null;
   compatibility_warnings: { code: string; message: string }[];
   social_optimization: VideoSocialOptimization;
+  enrichment: VideoEnrichment;
 }
 
 interface UploadSession {
