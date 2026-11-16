@@ -135,6 +135,64 @@ describe("upload command", () => {
     ]);
   });
 
+  it("--social uploads, waits, and prints the social-ready URL", async () => {
+    const sourceUrl = "https://media.example.com/hevc-demo.mp4";
+    const socialUrl = "https://img.test/vid_social.social.mp4";
+    const fetchMock = vi.fn(async (_url: string | URL, init?: RequestInit) => {
+      expect(JSON.parse(String(init?.body))).toEqual({
+        url: sourceUrl,
+        visibility: "public",
+        social_ready: true,
+      });
+      return Response.json({
+        data: {
+          id: "vid_social",
+          kind: "video",
+          url: "https://img.test/vid_social.mp4",
+          original_url: "https://img.test/vid_social.mp4",
+          social_ready_url: socialUrl,
+          visibility: "public",
+          mime_type: "video/mp4",
+          size: 16,
+          filename: "hevc-demo.mp4",
+          created_at: "2026-11-15T00:00:00.000Z",
+          width: 1920,
+          height: 1080,
+          duration_seconds: 12,
+          video_codec: "hevc",
+          audio_codec: "aac",
+          has_audio: true,
+          fast_start: false,
+          social_compatible: false,
+          compatibility_warnings: [
+            { code: "video_codec_not_h264", message: "Use H.264 video." },
+          ],
+          social_optimization: {
+            preset: "social",
+            status: "complete",
+            source: "derived",
+            url: socialUrl,
+          },
+        },
+      }, { status: 201 });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+    const out = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const err = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+    const { runCommand } = await import("citty");
+    const { default: upload } = await import("../../src/commands/upload.js");
+    await runCommand(upload, { rawArgs: [sourceUrl, "--social"] });
+    const printed = out.mock.calls.map((call) => String(call[0]).trim());
+    out.mockRestore();
+    const errors = err.mock.calls.map((call) => String(call[0]).trim());
+    err.mockRestore();
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(printed).toEqual([socialUrl]);
+    expect(errors).toEqual([]);
+  });
+
   it("keeps going past a failed file and exits non-zero", async () => {
     const good = ["a.jpg", "c.jpg"].map((name) => {
       const p = join(testDir, name);
