@@ -6,7 +6,7 @@ const main = defineCommand({
   meta: {
     name: "pixelvault",
     version: VERSION,
-    description: "CLI for PixelVault — agent-first image and video hosting",
+    description: "CLI for PixelVault — agent-first image, PDF, and video hosting",
   },
   subCommands: {
     register: () => import("./commands/register.js").then((m) => m.default),
