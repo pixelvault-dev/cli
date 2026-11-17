@@ -22,7 +22,7 @@ interface GetResponse {
 /**
  * Append a transform query string to a CDN URL. Accepts params with or without a
  * leading `?`/`&` (e.g. `w=400&fmt=webp`, `?segment=foreground`). See the transform
- * docs: https://pixelvault.dev/docs#transforms
+ * docs: https://pixelvault.dev/docs/transforms/
  *
  * The params are reserialized through URLSearchParams so reserved characters in
  * values are percent-encoded — without this a hex color like `background=#ffaa00`
