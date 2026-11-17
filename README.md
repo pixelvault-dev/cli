@@ -60,16 +60,18 @@ pixelvault enrich-video demo.mp4
 # Resume the same server job without uploading again
 pixelvault enrich-video vid_xyz
 
-# Host original MP3/WAV/M4A/OGG audio; prints the original-byte CDN URL
-pixelvault audio upload episode.mp3
+# Host and transcribe local audio; prints original/transcript URLs after completion
+pixelvault audio enrich episode.mp3
 
-# Private audio with a 12-hour signed link and 7-day asset deletion TTL
-pixelvault audio upload episode.m4a --private --link-expires 12h --delete-after 7d --json
+# Resume without another upload or duplicate job
+pixelvault audio enrich aud_xyz --timeout 1200 --json
 
-# Import, discover, update, re-sign, or delete by stable aud_ ID
+# Enqueue and return the stable asset/job IDs immediately
+pixelvault audio enrich episode.m4a --no-wait --json
+
+# Hosting-only, discovery, fresh private links, or deletion
 pixelvault audio upload "https://media.example.com/episode.ogg" --json
 pixelvault audio list --folder podcasts --json
-pixelvault audio get aud_xyz --json
 pixelvault audio sign aud_xyz --expires 1h
 pixelvault audio delete aud_xyz
 
@@ -105,7 +107,8 @@ The CLI is designed for AI coding agents. Output contract:
 - `optimize-video` converts an existing upload, waits for the derived social-ready URL, and prints only that URL; `--no-wait` enqueues and returns, while `--json` returns the full state
 - `enrich-video` uploads a local MP4 or reuses an existing `vid_` asset, starts or resumes transcript + storyboard enrichment, and reports the stable asset/job IDs before bounded polling
 - `audio upload` hosts original MP3, PCM/float WAV, AAC M4A, or Opus/Vorbis OGG from a local path or public URL; actual bytes are validated. The approved global maximum is 25,000,000 bytes (not a plan allowance). `--json` returns the stable `aud_` ID, detected codec/duration/sample rate/channels, privacy, and expiry
-- `audio list|get|update|sign|delete` cover discovery, organization, fresh private links, and deletion without public fallbacks
+- `audio enrich` accepts the same local or imported sources or an existing `aud_` ID, starts or resumes transcription, and returns original plus available text, WebVTT, and timestamped JSON artifacts. It reports stable asset/job IDs before bounded polling; local timeout never cancels the server job
+- `audio list|get|update|sign|delete` cover discovery, organization, fresh private original/transcript links, and deletion without public fallbacks
 - Image and PDF uploads support `--idempotency-key` and `--dedupe`; folder, image optimization, reuse, metadata, and AI-description options are rejected for MP4 files and URLs
 - `list` outputs one URL per line
 - `meta` prints the stored metadata as JSON
@@ -143,7 +146,8 @@ npx pixelvault-cli upload build-output.png
 | `optimize-video <id>` | Preserve a hosted MP4 and create a social-ready H.264/AAC fast-start copy |
 | `enrich-video <file.mp4\|vid_id>` | Upload or resume transcript + storyboard enrichment, with bounded polling and structured artifact access data |
 | `audio upload <path-or-url>` | Host original MP3/WAV/M4A/OGG bytes with privacy, TTL, metadata, organization, and retry safety |
-| `audio list\|get\|update\|sign\|delete` | Discover and manage audio by stable `aud_` asset ID |
+| `audio enrich <path-or-url-or-aud_id>` | Host or resume audio transcription with bounded polling and typed artifact access data |
+| `audio list\|get\|update\|sign\|delete` | Discover and manage audio and transcript lifecycle by stable `aud_` asset ID |
 | `get <id>` | Get an image's URL/metadata, or download it (optionally transformed) |
 | `meta <id>` | Replace an image's custom metadata (`--meta k=v`, `--metadata '<json>'`, or `--clear`) |
 | `delete <id>` | Delete an image |
@@ -233,14 +237,16 @@ check `pixelvault usage` for the current allowance and reset.
 ### Audio Hosting
 
 ```bash
-pixelvault audio upload episode.mp3
 pixelvault audio upload episode.wav --idempotency-key episode-v1 --json
-pixelvault audio upload "https://media.example.com/episode.m4a" --folder podcasts --json
-pixelvault audio upload private.ogg --private --link-expires 12h --delete-after 7d --json
+pixelvault audio enrich episode.mp3 --json
+pixelvault audio enrich "https://media.example.com/episode.m4a" --folder podcasts --json
+pixelvault audio enrich private.ogg --private --link-expires 12h --delete-after 7d --json
+pixelvault audio enrich aud_xyz --no-wait --json
+pixelvault audio enrich aud_xyz --timeout 1200 --json
 pixelvault audio list --folder podcasts --json
 pixelvault audio get aud_xyz --json
 pixelvault audio update aud_xyz --folder archive --meta episode=7 --json
-pixelvault audio sign aud_xyz --expires 1h
+pixelvault audio sign aud_xyz --expires 1h --json
 pixelvault audio delete aud_xyz
 ```
 
@@ -251,12 +257,18 @@ global original-file maximum is 25,000,000 bytes; it is not a plan allowance or
 capacity reservation. Existing storage, upload, bandwidth, private-asset, and
 retention rules apply.
 
-`--link-expires` controls only the private bearer URL. `--delete-after` deletes
-the asset. Local uploads with `--idempotency-key` send a byte checksum; exact
-retries return the original asset, while conflicting inputs fail. URL import is
-server-side and keeps the same product limit. Private assets never fall back to
-a public URL; use `audio sign` to mint a fresh link. Audio editing, conversion,
-HLS/DASH, and transcription are intentionally unsupported.
+Audio enrichment accepts hosted originals up to 25,000,000 bytes and 10 minutes.
+It produces plain text, WebVTT, and timestamped JSON when available. Audio and
+video enrichment share the existing plan allowance. It does not produce
+storyboards, summaries, chapters, show notes, or promo copy.
+
+`--link-expires` controls only private bearer URLs. `--delete-after` deletes the
+original and transcript artifacts, including cancellation and quota refund for
+an active job. Local uploads with `--idempotency-key` send a byte checksum;
+exact retries return the original asset, while conflicting inputs fail. Private
+assets never fall back to public URLs; `audio sign --json` mints fresh original
+and transcript links with one expiry. Audio editing, conversion, and HLS/DASH
+remain unsupported.
 
 ### Generate Options
 
