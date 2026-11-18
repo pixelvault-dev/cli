@@ -30,6 +30,7 @@ export interface AudioAsset {
   kind: "audio";
   url: string;
   original_url: string;
+  branded_url?: string;
   visibility: "public" | "private";
   mime_type: string;
   size: number;

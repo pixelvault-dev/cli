@@ -8,6 +8,7 @@ interface ListResponse {
   data: Array<{
     id: string;
     url: string;
+    branded_url?: string;
     mime_type: string;
     size: number;
     filename: string;
@@ -59,6 +60,11 @@ export default defineCommand({
       description:
         'Only images whose metadata contains this JSON object (typed match), e.g. --metadata \'{"n":3}\'',
     },
+    branded: {
+      type: "boolean",
+      description: "Print active custom-domain URLs when available",
+      default: false,
+    },
     json: {
       type: "boolean",
       description: "Output full JSON response",
@@ -88,7 +94,7 @@ export default defineCommand({
       jsonOut(res);
     } else {
       for (const img of res.data) {
-        stdout(img.url);
+        stdout(args.branded ? (img.branded_url ?? img.url) : img.url);
       }
     }
   },

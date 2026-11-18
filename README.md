@@ -94,6 +94,11 @@ pixelvault keys list
 KEY=$(pixelvault keys create --label ci)   # raw key on stdout, shown once
 pixelvault keys revoke key_abc123
 
+# Attach a custom domain to the active project
+pixelvault domains add media.example.com
+pixelvault domains refresh dom_abc123
+pixelvault upload photo.jpg --branded
+
 # Export everything — manifest plus all project media and derived artifacts (no lock-in)
 pixelvault export -o pixelvault-export.tar
 ```
@@ -103,6 +108,7 @@ pixelvault export -o pixelvault-export.tar
 The CLI is designed for AI coding agents. Output contract:
 
 - `upload` prints **only the URL** to stdout for images, PDFs, and MP4 videos. PDFs are served as forced downloads and do not support image transforms. Add `--optimized` for the smaller WebP/AVIF image variant; it falls back to the original URL for SVG, GIF, PDF, and private images
+- Media JSON keeps the canonical `url` and includes optional `branded_url` when the active project has a ready custom domain. Add `--branded` to `upload`, `list`, `get`, or `audio upload|list|get|update|sign` to print it, with canonical fallback
 - `upload` streams local MP4 files and automatically switches to multipart upload above 100 MB. It also accepts public MP4 URLs and has PixelVault import them directly. `--private [--expires 12h]` returns signed video and poster URLs. `--social` requests a separate H.264/AAC fast-start copy, waits for it, and prints the post-ready URL while preserving the original; `--json` returns both `original_url` and `social_ready_url`. Every video response includes duration, dimensions, codecs, fast-start status, and social-compatibility warnings. Video limits: Free 25 MB, Starter 100 MB, Pro 250 MB
 - `optimize-video` converts an existing upload, waits for the derived social-ready URL, and prints only that URL; `--no-wait` enqueues and returns, while `--json` returns the full state
 - `enrich-video` uploads a local MP4 or reuses an existing `vid_` asset, starts or resumes transcript + storyboard enrichment, and reports the stable asset/job IDs before bounded polling
@@ -154,6 +160,7 @@ npx pixelvault-cli upload build-output.png
 | `export` | Export all project media and derived artifacts with a manifest |
 | `usage` | Show plan, period, storage/upload/bandwidth usage and limits, and AI generation credits |
 | `keys list\|create\|revoke` | List, create, and revoke the project's secret API keys |
+| `domains list\|add\|refresh\|delete` | Manage the active project's custom domain and inspect account plan capacity |
 | `upgrade <starter\|pro>` | Print a Stripe Checkout URL to subscribe (live key; you pay in the browser) |
 | `billing` | Print a Stripe billing-portal URL to change plan, update payment details or cancel (live key) |
 | `whoami` | Show current auth state |
@@ -165,6 +172,7 @@ npx pixelvault-cli upload build-output.png
 pixelvault upload photo.jpg              # Single file
 pixelvault upload *.png --folder icons   # Bulk with folder
 pixelvault upload shot.png --json        # Full JSON response
+pixelvault upload shot.png --branded     # Ready custom-domain URL; canonical fallback
 pixelvault upload demo.mp4 --social        # Upload + wait; prints the post-ready URL
 pixelvault upload demo.mp4 --social --json # Includes original_url and social_ready_url
 pixelvault upload "https://media.example.com/demo.mp4" --private --expires 12h --social --json
@@ -244,6 +252,7 @@ pixelvault audio enrich private.ogg --private --link-expires 12h --delete-after 
 pixelvault audio enrich aud_xyz --no-wait --json
 pixelvault audio enrich aud_xyz --timeout 1200 --json
 pixelvault audio list --folder podcasts --json
+pixelvault audio get aud_xyz --branded
 pixelvault audio get aud_xyz --json
 pixelvault audio update aud_xyz --folder archive --meta episode=7 --json
 pixelvault audio sign aud_xyz --expires 1h --json
@@ -349,6 +358,7 @@ progress to **stderr**.
 
 ```bash
 pixelvault list                          # One URL per line
+pixelvault list --branded                # Ready custom-domain URLs; canonical fallback
 pixelvault list --json                   # Full JSON with metadata
 pixelvault list --page 2 --per-page 50   # Pagination
 pixelvault list --meta env=prod          # Only images tagged env=prod (repeatable; all must match)
@@ -416,6 +426,24 @@ pixelvault keys revoke key_abc123
 - **Rotate a key**: `NEW=$(pixelvault keys create --label rotated)`, switch
   `PIXELVAULT_API_KEY` to `$NEW`, then `pixelvault keys revoke <old-id>` using
   the new key. If you get locked out, use the dashboard's Regenerate.
+
+### Custom Domains
+
+Custom domains attach to the active project; plan capacity is account-wide
+(Starter 1, Pro 3). A verified email and live secret key are required.
+
+```bash
+pixelvault domains list
+pixelvault domains add media.example.com
+# Add the returned CNAME and optional TXT record, then:
+pixelvault domains refresh dom_abc123
+pixelvault domains delete dom_abc123
+```
+
+The hostname is ready only when both hostname and certificate status are active.
+Once ready, API JSON includes `branded_url` while preserving canonical `url`.
+`--branded` selects that API-provided URL and never reconstructs a signed link.
+Deleting the domain does not invalidate canonical PixelVault URLs.
 
 ### Upgrade and billing
 

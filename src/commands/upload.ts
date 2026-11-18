@@ -16,6 +16,7 @@ interface UploadResponse {
     id: string;
     kind?: "image" | "document" | "video";
     url: string;
+    branded_url?: string;
     optimized_url?: string;
     poster_url?: string;
     visibility?: "public" | "private";
@@ -67,6 +68,12 @@ export default defineCommand({
       type: "boolean",
       description:
         "Print the optimized URL (WebP/AVIF, usually much smaller) instead of the original; falls back to the original URL when none is returned (SVG, GIF, private)",
+      default: false,
+    },
+    branded: {
+      type: "boolean",
+      description:
+        "Print the active custom-domain URL when available; falls back to the canonical CDN URL",
       default: false,
     },
     social: {
@@ -143,6 +150,10 @@ export default defineCommand({
     );
     if (args.social && !allVideo) {
       stderr("--social only applies to MP4 file or URL uploads.");
+      process.exit(1);
+    }
+    if (args.branded && (args.optimized || args.social)) {
+      stderr("--branded cannot be combined with --optimized or --social; each selects a different output URL.");
       process.exit(1);
     }
     const imageOnlyOption =
@@ -228,7 +239,11 @@ export default defineCommand({
           if (args.json) {
             results.push(video);
           } else {
-            stdout(args.social ? video.social_optimization.url! : video.url);
+            stdout(args.social
+              ? video.social_optimization.url!
+              : args.branded
+                ? (video.branded_url ?? video.url)
+                : video.url);
           }
           continue;
         }
@@ -308,7 +323,11 @@ export default defineCommand({
         if (args.json) {
           results.push(res.data);
         } else {
-          stdout(args.optimized ? (res.data.optimized_url ?? res.data.url) : res.data.url);
+          stdout(args.branded
+            ? (res.data.branded_url ?? res.data.url)
+            : args.optimized
+              ? (res.data.optimized_url ?? res.data.url)
+              : res.data.url);
         }
       } catch (err) {
         hadError = true;

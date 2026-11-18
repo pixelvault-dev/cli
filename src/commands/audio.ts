@@ -168,6 +168,7 @@ const upload = defineCommand({
   args: {
     source: { type: "positional", description: "MP3, WAV, M4A, or OGG path or public HTTP(S) URL", required: true },
     ...lifecycleOptions,
+    branded: { type: "boolean", description: "Print the active custom-domain URL when available", default: false },
   },
   async run({ args }) {
     const audio = await uploadAudioSource(
@@ -178,7 +179,7 @@ const upload = defineCommand({
 
     if (args.json) jsonOut(audio);
     else {
-      stdout(audio.url);
+      stdout(args.branded ? (audio.branded_url ?? audio.url) : audio.url);
       stderr(`${audio.replayed ? "Replayed" : "Hosted"} ${audio.id}: ${audio.codec}, ${audio.duration_seconds}s, ${audio.visibility}.`);
     }
   },
@@ -195,6 +196,7 @@ const list = defineCommand({
     meta: { type: "string", description: "Filter metadata key=value (repeatable)" },
     metadata: { type: "string", description: "Filter by metadata JSON containment" },
     json: { type: "boolean", description: "Output complete JSON", default: false },
+    branded: { type: "boolean", description: "Print active custom-domain URLs when available", default: false },
   },
   async run({ args }) {
     const params = new URLSearchParams({ page: args.page, per_page: args["per-page"] });
@@ -207,7 +209,7 @@ const list = defineCommand({
       auth: requireApiKey(),
     });
     if (args.json) jsonOut(response);
-    else for (const audio of response.data) stdout(audio.url);
+    else for (const audio of response.data) stdout(args.branded ? (audio.branded_url ?? audio.url) : audio.url);
   },
 });
 
@@ -216,6 +218,7 @@ const get = defineCommand({
   args: {
     id: { type: "positional", description: "Stable aud_ asset ID", required: true },
     json: { type: "boolean", description: "Output complete JSON", default: false },
+    branded: { type: "boolean", description: "Print the active custom-domain URL when available", default: false },
   },
   async run({ args }) {
     const response = await apiRequest<DataResponse<AudioAsset>>({
@@ -223,7 +226,7 @@ const get = defineCommand({
       auth: requireApiKey(),
     });
     if (args.json) jsonOut(response.data);
-    else stdout(response.data.url);
+    else stdout(args.branded ? (response.data.branded_url ?? response.data.url) : response.data.url);
   },
 });
 
@@ -239,6 +242,7 @@ const update = defineCommand({
     metadata: { type: "string", description: "Replacement metadata JSON object" },
     "clear-metadata": { type: "boolean", description: "Replace metadata with an empty object", default: false },
     json: { type: "boolean", description: "Output complete JSON", default: false },
+    branded: { type: "boolean", description: "Print the active custom-domain URL when available", default: false },
   },
   async run({ args }) {
     if (args.folder && args["clear-folder"]) throw new CliError("Use --folder or --clear-folder, not both.");
@@ -264,7 +268,7 @@ const update = defineCommand({
       body,
     });
     if (args.json) jsonOut(response.data);
-    else stdout(response.data.url);
+    else stdout(args.branded ? (response.data.branded_url ?? response.data.url) : response.data.url);
   },
 });
 
@@ -274,16 +278,17 @@ const sign = defineCommand({
     id: { type: "positional", description: "Stable aud_ asset ID", required: true },
     expires: { type: "string", description: "Signed-link lifetime, e.g. 1h or 7d", default: "1h" },
     json: { type: "boolean", description: "Output complete JSON", default: false },
+    branded: { type: "boolean", description: "Print the active custom-domain signed URL when available", default: false },
   },
   async run({ args }) {
-    const response = await apiRequest<DataResponse<{ url: string; expires: number; visibility: string }>>({
+    const response = await apiRequest<DataResponse<{ url: string; branded_url?: string; expires: number; visibility: string }>>({
       method: "POST",
       path: `${AUDIO_PATH}/${encodeURIComponent(args.id)}/sign-url`,
       auth: requireApiKey(),
       body: { expires_in: parseExpires(args.expires) },
     });
     if (args.json) jsonOut(response.data);
-    else stdout(response.data.url);
+    else stdout(args.branded ? (response.data.branded_url ?? response.data.url) : response.data.url);
   },
 });
 
