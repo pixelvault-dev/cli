@@ -9,6 +9,7 @@ interface GetResponse {
   data: {
     id: string;
     url: string;
+    branded_url?: string;
     mime_type: string;
     size: number;
     filename: string;
@@ -60,6 +61,11 @@ export default defineCommand({
         'Transform params to apply, e.g. "w=400&fmt=webp", "segment=foreground", "tile=img_logo.png"',
       alias: "t",
     },
+    branded: {
+      type: "boolean",
+      description: "Use the active custom-domain URL when available",
+      default: false,
+    },
     json: {
       type: "boolean",
       description: "Output full JSON metadata",
@@ -74,7 +80,8 @@ export default defineCommand({
       auth: apiKey,
     });
 
-    const url = applyTransform(res.data.url, args.transform as string | undefined);
+    const baseUrl = args.branded ? (res.data.branded_url ?? res.data.url) : res.data.url;
+    const url = applyTransform(baseUrl, args.transform as string | undefined);
 
     // Download mode: fetch the (possibly transformed) bytes to disk.
     if (args.output) {

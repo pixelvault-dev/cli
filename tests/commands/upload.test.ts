@@ -263,4 +263,41 @@ describe("upload command", () => {
       "https://img.test/b.svg",
     ]);
   });
+  it("--branded prints the custom-domain URL and falls back to the canonical URL", async () => {
+    const names = ["custom.png", "canonical.png"];
+    const paths = names.map((name) => {
+      const path = join(testDir, name);
+      writeFileSync(path, Buffer.from(name));
+      return path;
+    });
+    globalThis.fetch = vi.fn().mockImplementation(async (_url, init) => {
+      const file = (init.body as FormData).get("file") as File;
+      const canonical = `https://img.test/proj_1/${file.name}`;
+      return {
+        ok: true,
+        json: () => Promise.resolve({
+          data: {
+            id: file.name,
+            url: canonical,
+            ...(file.name === "custom.png"
+              ? { branded_url: `https://media.example.com/${file.name}` }
+              : {}),
+          },
+        }),
+      };
+    });
+    const out = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    const { runCommand } = await import("citty");
+    const { default: upload } = await import("../../src/commands/upload.js");
+    await runCommand(upload, { rawArgs: [...paths, "--branded"] });
+    const printed = out.mock.calls.map((call) => String(call[0]).trim());
+    out.mockRestore();
+
+    expect(printed).toEqual([
+      "https://media.example.com/custom.png",
+      "https://img.test/proj_1/canonical.png",
+    ]);
+  });
+
 });

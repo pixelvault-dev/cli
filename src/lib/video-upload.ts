@@ -57,6 +57,7 @@ export interface VideoData {
   kind: "video";
   url: string;
   original_url: string;
+  branded_url?: string;
   social_ready_url?: string;
   poster_url?: string;
   visibility: "public" | "private";
