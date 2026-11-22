@@ -1,4 +1,5 @@
 import { runCommand, runMain, type CommandDef } from "citty";
+import { setCurrentCommand } from "./client.js";
 import { CliError } from "./errors.js";
 import { stderr } from "./output.js";
 
@@ -26,6 +27,7 @@ export async function runCli(
     return;
   }
 
+  setCurrentCommand(await resolveSubCommand(main, rawArgs));
   try {
     await runCommand(main, { rawArgs });
   } catch (err) {
@@ -43,5 +45,19 @@ export async function runCli(
     }
     stderr(`Error: ${err instanceof Error ? err.message : String(err)}`);
     exit(1);
+  } finally {
+    setCurrentCommand(undefined);
   }
+}
+
+/**
+ * The top-level subcommand `rawArgs` selects, resolved the way citty does (the first
+ * token not starting with "-"), or undefined when there is none or it is not a
+ * declared subcommand (citty then reports it as unknown).
+ */
+async function resolveSubCommand(main: CommandDef, rawArgs: string[]): Promise<string | undefined> {
+  const name = rawArgs.find((arg) => !arg.startsWith("-"));
+  if (!name) return undefined;
+  const defs = typeof main.subCommands === "function" ? await main.subCommands() : await main.subCommands;
+  return defs && Object.hasOwn(defs, name) ? name : undefined;
 }
