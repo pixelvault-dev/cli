@@ -18,8 +18,18 @@ interface ApiError {
 // this channel (server reads X-PixelVault-Client at register/device-login — see
 // pixelvault docs/specs/lead-attribution.md). Keep the version in sync with
 // package.json on release (tests/lib/version.test.ts fails if they drift).
-export const VERSION = "0.26.0";
+export const VERSION = "0.27.0";
 const CLIENT_ID = `pixelvault-cli/${VERSION}`;
+
+// The top-level subcommand being run (`upload`, `optimize-video`, …), set by runCli
+// before the command body runs. Sent as X-PixelVault-Command so the API can count
+// CLI usage per command (its `client_command` event). Only the subcommand name:
+// never arguments, file names, flags or values.
+let currentCommand: string | undefined;
+
+export function setCurrentCommand(name: string | undefined): void {
+  currentCommand = name;
+}
 
 /** CliError carrying the API's machine-readable error details. */
 export class ApiRequestError extends CliError {
@@ -51,6 +61,10 @@ export async function apiRequest<T>(
 
   if (!headers["X-PixelVault-Client"]) {
     headers["X-PixelVault-Client"] = CLIENT_ID;
+  }
+
+  if (currentCommand && !headers["X-PixelVault-Command"]) {
+    headers["X-PixelVault-Command"] = currentCommand;
   }
 
   if (options.auth) {

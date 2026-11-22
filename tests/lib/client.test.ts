@@ -5,13 +5,50 @@ vi.mock("../../src/lib/config.js", () => ({
   getApiUrl: () => "https://api.test.pixelvault.dev",
 }));
 
-const { apiRequest } = await import("../../src/lib/client.js");
+const { apiRequest, setCurrentCommand } = await import("../../src/lib/client.js");
 
 describe("client", () => {
   const originalFetch = globalThis.fetch;
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    setCurrentCommand(undefined);
+  });
+
+  const sentHeaders = (): Record<string, string> =>
+    (vi.mocked(globalThis.fetch).mock.calls[0]?.[1] as RequestInit).headers as Record<string, string>;
+
+  const okFetch = () =>
+    (globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: {} }),
+    }));
+
+  it("sends the running subcommand as X-PixelVault-Command", async () => {
+    okFetch();
+    setCurrentCommand("upload");
+    await apiRequest({ method: "POST", path: "/v1/images" });
+    expect(sentHeaders()["X-PixelVault-Command"]).toBe("upload");
+  });
+
+  it("sends a hyphenated subcommand exactly as typed", async () => {
+    okFetch();
+    setCurrentCommand("optimize-video");
+    await apiRequest({ path: "/v1/videos/vid_1" });
+    expect(sentHeaders()["X-PixelVault-Command"]).toBe("optimize-video");
+  });
+
+  it("does not overwrite an explicit X-PixelVault-Command from the caller", async () => {
+    okFetch();
+    setCurrentCommand("upload");
+    await apiRequest({ path: "/v1/images", headers: { "X-PixelVault-Command": "upload-batch" } });
+    expect(sentHeaders()["X-PixelVault-Command"]).toBe("upload-batch");
+  });
+
+  it("sends no X-PixelVault-Command when no subcommand is running", async () => {
+    okFetch();
+    await apiRequest({ path: "/v1/images" });
+    expect(sentHeaders()).not.toHaveProperty("X-PixelVault-Command");
   });
 
   it("makes GET request with auth header", async () => {

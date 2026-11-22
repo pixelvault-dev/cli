@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
 import { defineCommand } from "citty";
 import { runCli } from "../../src/lib/run.js";
+import { apiRequest } from "../../src/lib/client.js";
 import { CliError } from "../../src/lib/errors.js";
 
 const makeMain = (run: () => unknown) =>
@@ -81,5 +82,60 @@ describe("runCli", () => {
     const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
     await runCli(makeMain(() => {}), ["needs"], vi.fn());
     expect(exit).toHaveBeenCalledWith(1);
+  });
+});
+
+describe("runCli X-PixelVault-Command", () => {
+  const originalFetch = globalThis.fetch;
+  let fetchMock: Mock;
+
+  const callApi = () => apiRequest({ path: "/v1/images" });
+  const main = defineCommand({
+    meta: { name: "t", version: "1.2.3", description: "t" },
+    subCommands: {
+      upload: defineCommand({ meta: { name: "upload" }, args: { file: { type: "positional" } }, run: callApi }),
+      "optimize-video": defineCommand({ meta: { name: "optimize-video" }, run: callApi }),
+    },
+  });
+  const commandSent = (call = 0) =>
+    ((fetchMock.mock.calls[call]?.[1] as RequestInit).headers as Record<string, string>)["X-PixelVault-Command"];
+
+  beforeEach(() => {
+    vi.stubEnv("PIXELVAULT_API_URL", "https://api.test.pixelvault.dev");
+    fetchMock = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it("tags every API request made by `upload` with the subcommand name only", async () => {
+    await runCli(main, ["upload", "./secret-name.png"], vi.fn());
+    expect(commandSent()).toBe("upload");
+  });
+
+  it("sends a hyphenated subcommand as typed, even after leading flags", async () => {
+    await runCli(main, ["--verbose", "optimize-video"], vi.fn());
+    expect(commandSent()).toBe("optimize-video");
+  });
+
+  it("clears the command when the run ends", async () => {
+    await runCli(main, ["upload", "a.png"], vi.fn());
+    await callApi();
+    expect(commandSent(1)).toBeUndefined();
+  });
+
+  it("sets nothing for --version, --help or an unknown command", async () => {
+    await runCli(main, ["--version"], vi.fn());
+    await runCli(main, ["upload", "--help"], vi.fn());
+    await runCli(main, ["nope"], vi.fn());
+    expect(fetchMock).not.toHaveBeenCalled();
+    await callApi();
+    expect(commandSent()).toBeUndefined();
   });
 });
