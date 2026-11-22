@@ -22,6 +22,7 @@ const main = defineCommand({
     audio: () => import("./commands/audio.js").then((m) => m.default),
     get: () => import("./commands/get.js").then((m) => m.default),
     meta: () => import("./commands/meta.js").then((m) => m.default),
+    visibility: () => import("./commands/visibility.js").then((m) => m.default),
     delete: () => import("./commands/delete.js").then((m) => m.default),
     export: () => import("./commands/export.js").then((m) => m.default),
     usage: () => import("./commands/usage.js").then((m) => m.default),
