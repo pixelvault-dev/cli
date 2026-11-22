@@ -99,6 +99,10 @@ pixelvault domains add media.example.com
 pixelvault domains refresh dom_abc123
 pixelvault upload photo.jpg --branded
 
+# Password-protect a private image or MP4 (Starter/Pro); prints the /s/ link
+printf '%s\n' "$SHARE_PASSWORD" | pixelvault share-link create img_xyz --password-stdin --expires 7d
+pixelvault share-link revoke shr_abc123def456
+
 # Export everything — manifest plus all project media and derived artifacts (no lock-in)
 pixelvault export -o pixelvault-export.tar
 ```
@@ -161,6 +165,7 @@ npx pixelvault-cli upload build-output.png
 | `usage` | Show plan, period, storage/upload/bandwidth usage and limits, and AI generation credits |
 | `keys list\|create\|revoke` | List, create, and revoke the project's secret API keys |
 | `domains list\|add\|refresh\|delete` | Manage the active project's custom domain and inspect account plan capacity |
+| `share-link create\|list\|revoke` | Create, list, and revoke password-protected links to private images and MP4s (Starter/Pro) |
 | `upgrade <starter\|pro>` | Print a Stripe Checkout URL to subscribe (live key; you pay in the browser) |
 | `billing` | Print a Stripe billing-portal URL to change plan, update payment details or cancel (live key) |
 | `whoami` | Show current auth state |
@@ -444,6 +449,36 @@ The hostname is ready only when both hostname and certificate status are active.
 Once ready, API JSON includes `branded_url` while preserving canonical `url`.
 `--branded` selects that API-provided URL and never reconstructs a signed link.
 Deleting the domain does not invalidate canonical PixelVault URLs.
+
+### Password-protected share links
+
+A share link (`https://pixelvault.dev/s/shr_...`) lets someone without an account
+view one **private** image or MP4 after entering a password you choose. Starter
+and Pro plans; a secret key is required (publishable keys get a 403). Public
+media already has a share page, so only private uploads (`--private`) qualify.
+
+```bash
+# Preferred: read the password from the first line of stdin
+printf '%s\n' "$SHARE_PASSWORD" | pixelvault share-link create img_xyz --password-stdin
+pixelvault share-link create vid_xyz --expires 30d     # TTY: prompts twice, no echo
+pixelvault share-link create img_xyz --password '...' --expires 1h --json
+
+pixelvault share-link list                    # id, status, asset, expiry, URL
+pixelvault share-link list --asset img_xyz --json
+pixelvault share-link revoke shr_abc123def456  # idempotent; the link stops opening
+```
+
+- Password: 8–128 characters, sent as typed (no trimming). `--password-stdin`
+  keeps it out of shell history and process listings; `--password` works but is
+  visible to anyone who can see the command line. A headless run with neither
+  flag fails instead of waiting for a prompt.
+- `--expires`: `1h`, `1d`, `7d` (default), `30d` or `90d`.
+- `create` prints only the link URL on stdout (asset, expiry and status go to
+  stderr); `--json` prints the API `data` object. The password is never printed
+  and PixelVault cannot show it again, so send it to the recipient separately
+  from the link.
+- Status is `active`, `expired` or `revoked`. To change a password, revoke the
+  link and create a new one. Deleting the asset turns its links off.
 
 ### Upgrade and billing
 

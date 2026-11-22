@@ -1,4 +1,5 @@
 import { createInterface } from "node:readline";
+import type { Readable } from "node:stream";
 
 /**
  * Prompt the user for input via stderr (keeps stdout clean for agents).
@@ -14,6 +15,34 @@ export function prompt(question: string): Promise<string> {
       rl.close();
       resolve(answer.trim());
     });
+  });
+}
+
+/**
+ * Read one line from a non-interactive input (default stdin), for flags like
+ * `--password-stdin`. The line is returned verbatim (no trimming) without its
+ * line ending; an input that ends before any line yields "".
+ *
+ * Consumes the input: it is destroyed after the first line, so a pipe whose
+ * writer stays open cannot keep the CLI alive after the request finishes.
+ */
+export function readLine(input: Readable = process.stdin): Promise<string> {
+  // Executor form: Promise.withResolvers needs Node 22 and the CLI supports Node 20.
+  return new Promise((resolve, reject) => {
+    const rl = createInterface({ input, terminal: false });
+    let done = false;
+    const settle = (error: Error | null, line = "") => {
+      if (done) return;
+      done = true;
+      input.removeListener("error", settle);
+      rl.close();
+      input.destroy();
+      if (error) reject(error);
+      else resolve(line);
+    };
+    input.once("error", settle);
+    rl.once("line", (line) => settle(null, line));
+    rl.once("close", () => settle(null));
   });
 }
 
