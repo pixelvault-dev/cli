@@ -103,6 +103,9 @@ pixelvault upload photo.jpg --branded
 printf '%s\n' "$SHARE_PASSWORD" | pixelvault share-link create img_xyz --password-stdin --expires 7d
 pixelvault share-link revoke shr_abc123def456
 
+# Make an uploaded image or PDF private (prints the signed URL) or public again
+pixelvault visibility img_xyz private
+
 # Export everything — manifest plus all project media and derived artifacts (no lock-in)
 pixelvault export -o pixelvault-export.tar
 ```
@@ -160,6 +163,7 @@ npx pixelvault-cli upload build-output.png
 | `audio list\|get\|update\|sign\|delete` | Discover and manage audio and transcript lifecycle by stable `aud_` asset ID |
 | `get <id>` | Get an image's URL/metadata, or download it (optionally transformed) |
 | `meta <id>` | Replace an image's custom metadata (`--meta k=v`, `--metadata '<json>'`, or `--clear`) |
+| `visibility <id> <public\|private>` | Make an image or PDF public or private (moves the file; prints its new URL) |
 | `delete <id>` | Delete an image |
 | `export` | Export all project media and derived artifacts with a manifest |
 | `usage` | Show plan, period, storage/upload/bandwidth usage and limits, and AI generation credits |
@@ -405,6 +409,30 @@ pixelvault meta img_xyz --clear                            # remove it
 
 `meta` **replaces** the stored metadata (it does not merge), so include every key you want to keep. Metadata is ignored when `--dedupe` or `--idempotency-key` returns an existing image; use `meta` to change it. Limits: a JSON object, up to 50 top-level keys and 4 KB; NUL characters aren't allowed. Don't store secrets in it.
 
+### Change visibility
+
+Make an uploaded image or PDF private, or public again. Needs a secret key.
+
+```bash
+pixelvault visibility img_xyz private          # prints the signed URL (valid 1 hour)
+pixelvault visibility img_xyz public           # prints the public URL
+pixelvault visibility img_xyz private --json   # the updated image object
+```
+
+- The change moves the file, so its URL changes. Going private, the old public
+  URL stops working at once (resized versions within about a minute); copies
+  already saved elsewhere cannot be recalled. The signed URL's expiry goes to
+  stderr; run `pixelvault get <id>` later for a fresh one.
+- Going public turns off the file's password share links. A file in a folder
+  loses its folder on a private → public round trip.
+- Only images and PDFs; videos and audio return `visibility_change_unsupported`
+  (upload them again with the visibility you want). Files in a collection share
+  one visibility and return `visibility_change_collection`. The Free plan holds
+  up to 100 private assets (`private_limit_reached`). A
+  `visibility_change_conflict` means the file changed during the request and
+  nothing moved; it is safe to retry. Asking for the current visibility is a
+  no-op.
+
 
 ### Usage and Keys
 
@@ -455,7 +483,8 @@ Deleting the domain does not invalidate canonical PixelVault URLs.
 A share link (`https://pixelvault.dev/s/shr_...`) lets someone without an account
 view one **private** image or MP4 after entering a password you choose. Starter
 and Pro plans; a secret key is required (publishable keys get a 403). Public
-media already has a share page, so only private uploads (`--private`) qualify.
+media already has a share page, so only private media qualifies: upload with
+`--private`, or make an existing image private with `pixelvault visibility`.
 
 ```bash
 # Preferred: read the password from the first line of stdin
