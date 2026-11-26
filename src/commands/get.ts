@@ -58,7 +58,7 @@ export default defineCommand({
     transform: {
       type: "string",
       description:
-        'Transform params to apply, e.g. "w=400&fmt=webp", "segment=foreground", "tile=img_logo.png"',
+        'Transform params to apply, e.g. "w=400&fmt=webp&dpr=2", "size=avatar", "segment=foreground", "watermark=img_logo.png"',
       alias: "t",
     },
     branded: {
