@@ -83,6 +83,15 @@ pixelvault get img_xyz                                     # prints the CDN URL
 pixelvault get img_xyz -o photo.png                        # download the original
 pixelvault get img_xyz -o thumb.webp -t "w=400&fmt=webp"   # download a transformed variant
 
+# Mint a time-limited signed URL for a private image (optionally transformed)
+pixelvault sign-url img_private --expires 1h -t "w=800&fmt=auto&watermark=img_logo.png"
+
+# Manage reusable named transform presets and strict mode
+pixelvault presets set avatar "w=256&h=256&fit=cover&gravity=face&dpr=2&fmt=auto"
+pixelvault presets list
+pixelvault presets strict on
+pixelvault presets delete avatar
+
 # Delete an image
 pixelvault delete img_xyz
 
@@ -162,12 +171,14 @@ npx pixelvault-cli upload build-output.png
 | `audio enrich <path-or-url-or-aud_id>` | Host or resume audio transcription with bounded polling and typed artifact access data |
 | `audio list\|get\|update\|sign\|delete` | Discover and manage audio and transcript lifecycle by stable `aud_` asset ID |
 | `get <id>` | Get an image's URL/metadata, or download it (optionally transformed) |
+| `sign-url <id>` | Mint a time-limited signed URL for a private image or PDF (optionally transformed for raster images) |
 | `meta <id>` | Replace an image's custom metadata (`--meta k=v`, `--metadata '<json>'`, or `--clear`) |
 | `visibility <id> <public\|private>` | Make an image or PDF public or private (moves the file; prints its new URL) |
 | `delete <id>` | Delete an image |
 | `export` | Export all project media and derived artifacts with a manifest |
 | `usage` | Show plan, period, storage/upload/bandwidth usage and limits, and AI generation credits |
 | `keys list\|create\|revoke` | List, create, and revoke the project's secret API keys |
+| `presets list\|set\|delete\|strict` | Manage custom named transform presets (`?size=<name>`) and toggle strict transform mode |
 | `domains list\|add\|refresh\|delete` | Manage the active project's custom domain and inspect account plan capacity |
 | `share-link create\|list\|revoke` | Create, list, and revoke password-protected links to private images and MP4s (Starter/Pro) |
 | `upgrade <starter\|pro>` | Print a Stripe Checkout URL to subscribe (live key; you pay in the browser) |
